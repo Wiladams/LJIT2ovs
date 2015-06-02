@@ -34,6 +34,7 @@ import(exports, "lib.json")
 import(exports, "lib.jsonrpc")
 import(exports, "lib.list")
 import(exports, "lib.ovsdb_error")
+import(exports, "lib.ovsdb_idl")
 import(exports, "lib.ovsdb_idl_provider")
 import(exports, "lib.ovsdb_types")
 import(exports, "lib.shash")
@@ -41,6 +42,8 @@ import(exports, "lib.table")
 import(exports, "lib.unixctl")
 import(exports, "lib.util")
 import(exports, "lib.uuid")
+import(exports, "lib.vswitch_idl")
+
 
 setmetatable(exports, {
 	__call=function(self)

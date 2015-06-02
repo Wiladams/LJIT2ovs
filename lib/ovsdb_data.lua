@@ -2,8 +2,8 @@ local ffi = require("ffi")
 
 
 --#include "compiler.h"
---#include "ovsdb-types.h"
---#include "shash.h"
+require("lib.ovsdb_types")
+require("lib.shash")
 
 ffi.cdef[[
 struct ds;
@@ -268,9 +268,9 @@ local exports = {
   Lib_ovsdb_data = Lib_ovsdb_data;
 
   -- local functions
-  ovsdb_atom_needs_destruction
-  ovsdb_atom_destroy
-  ovsdb_atom_equals
+  ovsdb_atom_needs_destruction = ovsdb_atom_needs_destruction;
+  ovsdb_atom_destroy = ovsdb_atom_destroy;
+  ovsdb_atom_equals = ovsdb_atom_equals;
   ovsdb_datum_conforms_to_type = ovsdb_datum_conforms_to_type;
 
   -- shared library functions

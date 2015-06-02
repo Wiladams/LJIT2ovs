@@ -1,96 +1,104 @@
 local ffi = require("ffi")
 
-local common = require("testy.ovctl_command_common")
+local common = require("testy.ovctl_common")
 
-
+--[[
 struct cmd_show_table {
     const struct ovsdb_idl_table_class *table;
     const struct ovsdb_idl_column *name_column;
     const struct ovsdb_idl_column *columns[3];
     bool recurse;
 };
+--]]
 
-static struct cmd_show_table cmd_show_tables[] = {
-    {&ovsrec_table_open_vswitch,
-     NULL,
-     {&ovsrec_open_vswitch_col_manager_options,
-      &ovsrec_open_vswitch_col_bridges,
-      &ovsrec_open_vswitch_col_ovs_version},
-     false},
+local cmd_show_tables = {
+    {
+        ["table"] = &ovsrec_table_open_vswitch,
+        name_column=nil,
+        columns = {&ovsrec_open_vswitch_col_manager_options,
+            &ovsrec_open_vswitch_col_bridges,
+            &ovsrec_open_vswitch_col_ovs_version
+        },
+        recurse = false
+    },
 
-    {&ovsrec_table_bridge,
-     &ovsrec_bridge_col_name,
-     {&ovsrec_bridge_col_controller,
-      &ovsrec_bridge_col_fail_mode,
-      &ovsrec_bridge_col_ports},
-     false},
+    {
+        ["table"] = &ovsrec_table_bridge,
+        name_column = &ovsrec_bridge_col_name,
+        columns = {
+            &ovsrec_bridge_col_controller,
+            &ovsrec_bridge_col_fail_mode,
+            &ovsrec_bridge_col_ports
+            },
+        recurse = false
+    },
 
-    {&ovsrec_table_port,
-     &ovsrec_port_col_name,
-     {&ovsrec_port_col_tag,
-      &ovsrec_port_col_trunks,
-      &ovsrec_port_col_interfaces},
-     false},
+    {
+        ["table"] = &ovsrec_table_port,
+        name_column = &ovsrec_port_col_name,
+        columns = {
+            &ovsrec_port_col_tag,
+            &ovsrec_port_col_trunks,
+            &ovsrec_port_col_interfaces},
+        recurse = false
+    },
 
-    {&ovsrec_table_interface,
-     &ovsrec_interface_col_name,
-     {&ovsrec_interface_col_type,
-      &ovsrec_interface_col_options,
-      &ovsrec_interface_col_error},
-     false},
+    {
+        ["table"] = &ovsrec_table_interface,
+        name_column = &ovsrec_interface_col_name,
+        columns = {
+            &ovsrec_interface_col_type,
+            &ovsrec_interface_col_options,
+            &ovsrec_interface_col_error
+        },
+        recurse = false
+    },
 
-    {&ovsrec_table_controller,
-     &ovsrec_controller_col_target,
-     {&ovsrec_controller_col_is_connected,
-      NULL,
-      NULL},
-     false},
+    {
+        ["table"] = &ovsrec_table_controller,
+        name_column = &ovsrec_controller_col_target,
+        columns = {
+            &ovsrec_controller_col_is_connected
+        },
+        recurse = false
+    },
 
-    {&ovsrec_table_manager,
-     &ovsrec_manager_col_target,
-     {&ovsrec_manager_col_is_connected,
-      NULL,
-      NULL},
-     false},
+    {
+        ["table"] = &ovsrec_table_manager,
+        name_column = &ovsrec_manager_col_target,
+        columns = {&ovsrec_manager_col_is_connected},
+        recurse = false
+    },
 };
 
-static void
-pre_cmd_show(struct vsctl_context *ctx)
-{
-    struct cmd_show_table *show;
 
-    for (show = cmd_show_tables;
-         show < &cmd_show_tables[ARRAY_SIZE(cmd_show_tables)];
-         show++) {
-        size_t i;
+local function pre_cmd_show(struct vsctl_context *ctx)
 
-        ovsdb_idl_add_table(ctx->idl, show->table);
-        if (show->name_column) {
-            ovsdb_idl_add_column(ctx->idl, show->name_column);
-        }
-        for (i = 0; i < ARRAY_SIZE(show->columns); i++) {
-            const struct ovsdb_idl_column *column = show->columns[i];
-            if (column) {
-                ovsdb_idl_add_column(ctx->idl, column);
-            }
-        }
-    }
-}
+    for idx, show in ipairs(cmd_show_tables) do
 
-static struct cmd_show_table *
-cmd_show_find_table_by_row(const struct ovsdb_idl_row *row)
-{
-    struct cmd_show_table *show;
+        local  i=0;
 
-    for (show = cmd_show_tables;
-         show < &cmd_show_tables[ARRAY_SIZE(cmd_show_tables)];
-         show++) {
-        if (show->table == row->table->class) {
+        ovsdb_idl_add_table(ctx.idl, show.table);
+        if (show.name_column ~= nil) then
+            ovsdb_idl_add_column(ctx.idl, show.name_column);
+        end
+
+        for _, column in ipairs(show.columns) do
+            ovsdb_idl_add_column(ctx.idl, column);
+        end
+    end
+end
+
+local function cmd_show_find_table_by_row(const struct ovsdb_idl_row *row)
+
+    for _, show in ipairs(cmd_show_tables) do
+        if (show.table == row.table.class) then
             return show;
-        }
-    }
-    return NULL;
-}
+        end
+    end
+
+    return nil;
+end
 
 static struct cmd_show_table *
 cmd_show_find_table_by_name(const char *name)
@@ -172,13 +180,18 @@ cmd_show_row(struct vsctl_context *ctx, const struct ovsdb_idl_row *row,
     show->recurse = false;
 }
 
-static void
-cmd_show(struct vsctl_context *ctx)
-{
+local function cmd_show(struct vsctl_context *ctx)
+
     const struct ovsdb_idl_row *row;
 
-    for (row = ovsdb_idl_first_row(ctx->idl, cmd_show_tables[0].table);
-         row; row = ovsdb_idl_next_row(row)) {
+    local row = ovsdb_idl_first_row(ctx.idl, cmd_show_tables[1].table);
+    while (row ~= nil) do
         cmd_show_row(ctx, row, 0);
-    }
-}
+        row = ovsdb_idl_next_row(row)
+    end
+end
+
+local function main()
+end
+
+main();

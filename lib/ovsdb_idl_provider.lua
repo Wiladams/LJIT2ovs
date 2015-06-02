@@ -1,13 +1,13 @@
 local ffi = require("ffi")
 
---[[
-#include "hmap.h"
-#include "list.h"
-#include "ovsdb-idl.h"
-#include "ovsdb-types.h"
-#include "shash.h"
-#include "uuid.h"
---]]
+
+require("lib.hmap")
+require("lib.list")
+require("lib.ovsdb_idl")
+require("lib.ovsdb_types")
+require("lib.shash")
+require("lib.uuid")
+
 
 ffi.cdef[[
 struct ovsdb_idl_row {
@@ -75,7 +75,7 @@ local exports = {
     Lib_ovsdb_idl_provider = Lib_ovsdb_idl_provider;
 
     ovsdb_idl_txn_verify = Lib_ovsdb_idl_provider.ovsdb_idl_txn_verify;
-    ovsdb_idl_txn = Lib_ovsdb_idl_provider.ovsdb_idl_txn;
+    ovsdb_idl_txn_get = Lib_ovsdb_idl_provider.ovsdb_idl_txn_get;
 }
 
 return exports
