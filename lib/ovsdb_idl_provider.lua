@@ -1,11 +1,13 @@
 local ffi = require("ffi")
 
+--[[
 #include "hmap.h"
 #include "list.h"
 #include "ovsdb-idl.h"
 #include "ovsdb-types.h"
 #include "shash.h"
 #include "uuid.h"
+--]]
 
 ffi.cdef[[
 struct ovsdb_idl_row {

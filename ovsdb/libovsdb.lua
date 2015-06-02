@@ -20,8 +20,8 @@ end
 
 local exports = {}
 
-import(exports, "ovs.ovsdb.log")
-import(exports, "ovs.ovsdb.ovsdb_ffi")
+import(exports, "ovsdb.log")
+import(exports, "ovsdb.ovsdb_ffi")
 
 setmetatable(exports, {
 	__call=function(self)

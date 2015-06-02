@@ -1,6 +1,6 @@
 local ffi = require("ffi")
 
-require ("ovs.lib.shash")
+require ("lib.shash")
 
 ffi.cdef[[
 struct ds;

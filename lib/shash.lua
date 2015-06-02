@@ -1,7 +1,7 @@
 local ffi = require("ffi")
 
 
-require("ovs.lib.hmap")
+require("lib.hmap")
 
 local exports = {}
 

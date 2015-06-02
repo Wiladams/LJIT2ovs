@@ -3,7 +3,7 @@ local ffi = require("ffi")
 --require ("compiler");
 local Lib_table = ffi.load("openvswitch")
 local stringz = require("stringz")
-local json = require("ovs.lib.json");
+local json = require("lib.json");
 
 
 ffi.cdef[[

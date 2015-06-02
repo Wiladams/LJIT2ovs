@@ -4,7 +4,7 @@ local ffi = require("ffi")
 
 
 --require ("util")
-require ("ovs.openvswitch.ovs_list")
+require ("openvswitch.ovs_list")
 
 --[[
 static inline void list_init(struct ovs_list *);

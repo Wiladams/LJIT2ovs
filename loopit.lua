@@ -13,6 +13,6 @@ if (arg[1] ~= nil) then
 		return false, err;
 	end
 	
-	f();
+	run(f);
 end
 

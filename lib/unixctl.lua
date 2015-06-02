@@ -2,7 +2,7 @@
 
 local ffi = require("ffi")
 
-local jsonrpc = require("ovs.lib.jsonrpc");
+local jsonrpc = require("lib.jsonrpc");
 
 local Lib_unixctl = ffi.load("openvswitch");
 

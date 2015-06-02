@@ -2,9 +2,9 @@
 local ffi = require("ffi")
 
 --require ("compiler")
-require ("ovs.lib.hmap")
-require ("ovs.lib.list")
-require ("ovs.lib.shash")
+require ("lib.hmap")
+require ("lib.list")
+require ("lib.shash")
 
 ffi.cdef[[
 struct json;

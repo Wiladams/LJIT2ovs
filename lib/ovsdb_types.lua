@@ -2,8 +2,8 @@ local ffi = require("ffi")
 
 
 --#include "compiler.h"
-require("ovs.lib.uuid")
-require("ovs.lib.json")
+require("lib.uuid")
+require("lib.json")
 
 ffi.cdef[[
 /* An atomic type: one that OVSDB regards as a single unit of data. */
