@@ -1,6 +1,7 @@
 local ffi = require("ffi")
 
 local common = require("testy.ovctl_common")
+local stringz = require("core.stringz")
 
 --[[
 struct cmd_show_table {
@@ -13,60 +14,61 @@ struct cmd_show_table {
 
 local cmd_show_tables = {
     {
-        ["table"] = &ovsrec_table_open_vswitch,
+        ["table"] = ovsrec_table_open_vswitch,
         name_column=nil,
-        columns = {&ovsrec_open_vswitch_col_manager_options,
-            &ovsrec_open_vswitch_col_bridges,
-            &ovsrec_open_vswitch_col_ovs_version
+        columns = {
+            ovsrec_open_vswitch_col_manager_options,
+            ovsrec_open_vswitch_col_bridges,
+            ovsrec_open_vswitch_col_ovs_version
         },
         recurse = false
     },
 
     {
-        ["table"] = &ovsrec_table_bridge,
-        name_column = &ovsrec_bridge_col_name,
+        ["table"] = ovsrec_table_bridge,
+        name_column = ovsrec_bridge_col_name,
         columns = {
-            &ovsrec_bridge_col_controller,
-            &ovsrec_bridge_col_fail_mode,
-            &ovsrec_bridge_col_ports
+            ovsrec_bridge_col_controller,
+            ovsrec_bridge_col_fail_mode,
+            ovsrec_bridge_col_ports
             },
         recurse = false
     },
 
     {
-        ["table"] = &ovsrec_table_port,
-        name_column = &ovsrec_port_col_name,
+        ["table"] = ovsrec_table_port,
+        name_column = ovsrec_port_col_name,
         columns = {
-            &ovsrec_port_col_tag,
-            &ovsrec_port_col_trunks,
-            &ovsrec_port_col_interfaces},
+            ovsrec_port_col_tag,
+            ovsrec_port_col_trunks,
+            ovsrec_port_col_interfaces},
         recurse = false
     },
 
     {
-        ["table"] = &ovsrec_table_interface,
-        name_column = &ovsrec_interface_col_name,
+        ["table"] = ovsrec_table_interface,
+        name_column = ovsrec_interface_col_name,
         columns = {
-            &ovsrec_interface_col_type,
-            &ovsrec_interface_col_options,
-            &ovsrec_interface_col_error
+            ovsrec_interface_col_type,
+            ovsrec_interface_col_options,
+            ovsrec_interface_col_error
         },
         recurse = false
     },
 
     {
-        ["table"] = &ovsrec_table_controller,
-        name_column = &ovsrec_controller_col_target,
+        ["table"] = ovsrec_table_controller,
+        name_column = ovsrec_controller_col_target,
         columns = {
-            &ovsrec_controller_col_is_connected
+            ovsrec_controller_col_is_connected
         },
         recurse = false
     },
 
     {
-        ["table"] = &ovsrec_table_manager,
-        name_column = &ovsrec_manager_col_target,
-        columns = {&ovsrec_manager_col_is_connected},
+        ["table"] = ovsrec_table_manager,
+        name_column = ovsrec_manager_col_target,
+        columns = {ovsrec_manager_col_is_connected},
         recurse = false
     },
 };
@@ -100,52 +102,51 @@ local function cmd_show_find_table_by_row(const struct ovsdb_idl_row *row)
     return nil;
 end
 
-static struct cmd_show_table *
-cmd_show_find_table_by_name(const char *name)
-{
-    struct cmd_show_table *show;
 
-    for (show = cmd_show_tables;
-         show < &cmd_show_tables[ARRAY_SIZE(cmd_show_tables)];
-         show++) {
-        if (!strcmp(show->table->name, name)) {
+local function cmd_show_find_table_by_name(name)
+
+
+    for _, show in ipairs(cmd_show_tables) do
+
+        if (stringz.strcmp(show.table.name, name) == 0) then
             return show;
-        }
-    }
-    return NULL;
-}
+        end
+    end
+
+    return nil;
+end
 
 static void
-cmd_show_row(struct vsctl_context *ctx, const struct ovsdb_idl_row *row,
-             int level)
-{
-    struct cmd_show_table *show = cmd_show_find_table_by_row(row);
+local function cmd_show_row(struct vsctl_context *ctx, const struct ovsdb_idl_row *row, int level)
+
+    local show = cmd_show_find_table_by_row(row);
     size_t i;
 
-    ds_put_char_multiple(&ctx->output, ' ', level * 4);
-    if (show && show->name_column) {
+    ds_put_char_multiple(&ctx.output, ' ', level * 4);
+    if (show and show.name_column) then
         const struct ovsdb_datum *datum;
 
-        ds_put_format(&ctx->output, "%s ", show->table->name);
-        datum = ovsdb_idl_read(row, show->name_column);
-        ovsdb_datum_to_string(datum, &show->name_column->type, &ctx->output);
-    } else {
-        ds_put_format(&ctx->output, UUID_FMT, UUID_ARGS(&row->uuid));
-    }
-    ds_put_char(&ctx->output, '\n');
+        ds_put_format(&ctx.output, "%s ", show.table.name);
+        datum = ovsdb_idl_read(row, show.name_column);
+        ovsdb_datum_to_string(datum, &show.name_column.type, &ctx.output);
+    else 
+        ds_put_format(&ctx.output, UUID_FMT, UUID_ARGS(&row.uuid));
+    end
+    
+    ds_put_char(&ctx.output, '\n');
 
-    if (!show || show->recurse) {
+    if (not show or show.recurse) then
         return;
-    }
+    end
 
-    show->recurse = true;
-    for (i = 0; i < ARRAY_SIZE(show->columns); i++) {
+    show.recurse = true;
+    for (i = 0; i < ARRAY_SIZE(show.columns); i++) {
         const struct ovsdb_idl_column *column = show->columns[i];
         const struct ovsdb_datum *datum;
 
-        if (!column) {
+        if (not column) then
             break;
-        }
+        end
 
         datum = ovsdb_idl_read(row, column);
         if (column->type.key.type == OVSDB_TYPE_UUID &&
@@ -177,12 +178,10 @@ cmd_show_row(struct vsctl_context *ctx, const struct ovsdb_idl_row *row,
             ds_put_char(&ctx->output, '\n');
         }
     }
-    show->recurse = false;
-}
+    show.recurse = false;
+end
 
 local function cmd_show(struct vsctl_context *ctx)
-
-    const struct ovsdb_idl_row *row;
 
     local row = ovsdb_idl_first_row(ctx.idl, cmd_show_tables[1].table);
     while (row ~= nil) do

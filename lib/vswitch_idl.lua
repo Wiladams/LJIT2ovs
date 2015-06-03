@@ -2,15 +2,17 @@ local ffi = require("ffi")
 
 require("lib.ovsdb_data")
 require("lib.ovsdb_idl_provider")
---require("lib.smap")
+require("lib.smap")
 require("lib.uuid")
 
---[[
-#include "ovsdb-data.h"
-#include "ovsdb-idl-provider.h"
-#include "smap.h"
-#include "uuid.h"
---]]
+
+local Lib_vswitch_idl = ffi.load("openvswitch")
+
+local exports = {
+	Lib_vswitch_idl = Lib_vswitch_idl;
+
+}
+
 
 ffi.cdef[[
 /* AutoAttach table. */
@@ -36,15 +38,18 @@ enum {
     OVSREC_AUTOATTACH_N_COLUMNS
 };
 ]]
---[[
-#define ovsrec_autoattach_col_system_name (ovsrec_autoattach_columns[OVSREC_AUTOATTACH_COL_SYSTEM_NAME])
-#define ovsrec_autoattach_col_mappings (ovsrec_autoattach_columns[OVSREC_AUTOATTACH_COL_MAPPINGS])
-#define ovsrec_autoattach_col_system_description (ovsrec_autoattach_columns[OVSREC_AUTOATTACH_COL_SYSTEM_DESCRIPTION])
---]]
 
 ffi.cdef[[
 extern struct ovsdb_idl_column ovsrec_autoattach_columns[OVSREC_AUTOATTACH_N_COLUMNS];
 ]]
+
+---[[
+exports.ovsrec_autoattach_col_system_name = (Lib_vswitch_idl.ovsrec_autoattach_columns[ffi.C.OVSREC_AUTOATTACH_COL_SYSTEM_NAME])
+exports.ovsrec_autoattach_col_mappings = (Lib_vswitch_idl.ovsrec_autoattach_columns[ffi.C.OVSREC_AUTOATTACH_COL_MAPPINGS])
+exports.ovsrec_autoattach_col_system_description = (Lib_vswitch_idl.ovsrec_autoattach_columns[ffi.C.OVSREC_AUTOATTACH_COL_SYSTEM_DESCRIPTION])
+--]]
+
+
 
 ffi.cdef[[
 const struct ovsrec_autoattach *ovsrec_autoattach_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
@@ -52,16 +57,16 @@ const struct ovsrec_autoattach *ovsrec_autoattach_first(const struct ovsdb_idl *
 const struct ovsrec_autoattach *ovsrec_autoattach_next(const struct ovsrec_autoattach *);
 ]]
 
---[[
-#define OVSREC_AUTOATTACH_FOR_EACH(ROW, IDL) \
+--[=[
+local function OVSREC_AUTOATTACH_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_autoattach_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_autoattach_next(ROW))
-#define OVSREC_AUTOATTACH_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_AUTOATTACH_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_autoattach_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_autoattach_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
---]]
+--]=]
 
 ffi.cdef[[
 void ovsrec_autoattach_init(struct ovsrec_autoattach *);
@@ -81,7 +86,7 @@ void ovsrec_autoattach_set_system_description(const struct ovsrec_autoattach *, 
 void ovsrec_autoattach_set_system_name(const struct ovsrec_autoattach *, const char *system_name);
 ]]
 
---[[
+ffi.cdef[[
 /* Bridge table. */
 struct ovsrec_bridge {
 	struct ovsdb_idl_row header_;
@@ -159,7 +164,9 @@ struct ovsrec_bridge {
 	/* stp_enable column. */
 	bool stp_enable;
 };
+]]
 
+ffi.cdef[[
 enum {
     OVSREC_BRIDGE_COL_AUTO_ATTACH,
     OVSREC_BRIDGE_COL_CONTROLLER,
@@ -185,48 +192,61 @@ enum {
     OVSREC_BRIDGE_COL_STP_ENABLE,
     OVSREC_BRIDGE_N_COLUMNS
 };
+]]
 
-#define ovsrec_bridge_col_datapath_id (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_DATAPATH_ID])
-#define ovsrec_bridge_col_datapath_type (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_DATAPATH_TYPE])
-#define ovsrec_bridge_col_mirrors (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_MIRRORS])
-#define ovsrec_bridge_col_rstp_status (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_RSTP_STATUS])
-#define ovsrec_bridge_col_external_ids (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_EXTERNAL_IDS])
-#define ovsrec_bridge_col_rstp_enable (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_RSTP_ENABLE])
-#define ovsrec_bridge_col_flood_vlans (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_FLOOD_VLANS])
-#define ovsrec_bridge_col_datapath_version (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_DATAPATH_VERSION])
-#define ovsrec_bridge_col_status (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_STATUS])
-#define ovsrec_bridge_col_ipfix (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_IPFIX])
-#define ovsrec_bridge_col_controller (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_CONTROLLER])
-#define ovsrec_bridge_col_auto_attach (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_AUTO_ATTACH])
-#define ovsrec_bridge_col_mcast_snooping_enable (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_MCAST_SNOOPING_ENABLE])
-#define ovsrec_bridge_col_netflow (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_NETFLOW])
-#define ovsrec_bridge_col_protocols (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_PROTOCOLS])
-#define ovsrec_bridge_col_fail_mode (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_FAIL_MODE])
-#define ovsrec_bridge_col_name (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_NAME])
-#define ovsrec_bridge_col_sflow (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_SFLOW])
-#define ovsrec_bridge_col_other_config (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_OTHER_CONFIG])
-#define ovsrec_bridge_col_flow_tables (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_FLOW_TABLES])
-#define ovsrec_bridge_col_ports (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_PORTS])
-#define ovsrec_bridge_col_stp_enable (ovsrec_bridge_columns[OVSREC_BRIDGE_COL_STP_ENABLE])
-
+ffi.cdef[[
 extern struct ovsdb_idl_column ovsrec_bridge_columns[OVSREC_BRIDGE_N_COLUMNS];
+]]
 
+---[[
+exports.ovsrec_bridge_col_datapath_id = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_DATAPATH_ID])
+exports.ovsrec_bridge_col_datapath_type = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_DATAPATH_TYPE])
+exports.ovsrec_bridge_col_mirrors = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_MIRRORS])
+exports.ovsrec_bridge_col_rstp_status = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_RSTP_STATUS])
+exports.ovsrec_bridge_col_external_ids = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_EXTERNAL_IDS])
+exports.ovsrec_bridge_col_rstp_enable = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_RSTP_ENABLE])
+exports.ovsrec_bridge_col_flood_vlans = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_FLOOD_VLANS])
+exports.ovsrec_bridge_col_datapath_version = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_DATAPATH_VERSION])
+exports.ovsrec_bridge_col_status = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_STATUS])
+exports.ovsrec_bridge_col_ipfix = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_IPFIX])
+exports.ovsrec_bridge_col_controller = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_CONTROLLER])
+exports.ovsrec_bridge_col_auto_attach = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_AUTO_ATTACH])
+exports.ovsrec_bridge_col_mcast_snooping_enable = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_MCAST_SNOOPING_ENABLE])
+exports.ovsrec_bridge_col_netflow = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_NETFLOW])
+exports.ovsrec_bridge_col_protocols = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_PROTOCOLS])
+exports.ovsrec_bridge_col_fail_mode = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_FAIL_MODE])
+exports.ovsrec_bridge_col_name = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_NAME])
+exports.ovsrec_bridge_col_sflow = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_SFLOW])
+exports.ovsrec_bridge_col_other_config = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_OTHER_CONFIG])
+exports.ovsrec_bridge_col_flow_tables = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_FLOW_TABLES])
+exports.ovsrec_bridge_col_ports = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_PORTS])
+exports.ovsrec_bridge_col_stp_enable = (Lib_vswitch_idl.ovsrec_bridge_columns[ffi.C.OVSREC_BRIDGE_COL_STP_ENABLE])
+--]]
+
+ffi.cdef[[
 const struct ovsrec_bridge *ovsrec_bridge_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_bridge *ovsrec_bridge_first(const struct ovsdb_idl *);
 const struct ovsrec_bridge *ovsrec_bridge_next(const struct ovsrec_bridge *);
-#define OVSREC_BRIDGE_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_BRIDGE_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_bridge_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_bridge_next(ROW))
-#define OVSREC_BRIDGE_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_BRIDGE_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_bridge_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_bridge_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_bridge_init(struct ovsrec_bridge *);
 void ovsrec_bridge_delete(const struct ovsrec_bridge *);
 struct ovsrec_bridge *ovsrec_bridge_insert(struct ovsdb_idl_txn *);
+]]
 
+ffi.cdef[[
 void ovsrec_bridge_verify_auto_attach(const struct ovsrec_bridge *);
 void ovsrec_bridge_verify_controller(const struct ovsrec_bridge *);
 void ovsrec_bridge_verify_datapath_id(const struct ovsrec_bridge *);
@@ -249,7 +269,9 @@ void ovsrec_bridge_verify_rstp_status(const struct ovsrec_bridge *);
 void ovsrec_bridge_verify_sflow(const struct ovsrec_bridge *);
 void ovsrec_bridge_verify_status(const struct ovsrec_bridge *);
 void ovsrec_bridge_verify_stp_enable(const struct ovsrec_bridge *);
+]]
 
+ffi.cdef[[
 const struct ovsdb_datum *ovsrec_bridge_get_auto_attach(const struct ovsrec_bridge *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_bridge_get_controller(const struct ovsrec_bridge *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_bridge_get_datapath_id(const struct ovsrec_bridge *, enum ovsdb_atomic_type key_type);
@@ -272,7 +294,9 @@ const struct ovsdb_datum *ovsrec_bridge_get_rstp_status(const struct ovsrec_brid
 const struct ovsdb_datum *ovsrec_bridge_get_sflow(const struct ovsrec_bridge *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_bridge_get_status(const struct ovsrec_bridge *, enum ovsdb_atomic_type key_type, enum ovsdb_atomic_type value_type);
 const struct ovsdb_datum *ovsrec_bridge_get_stp_enable(const struct ovsrec_bridge *, enum ovsdb_atomic_type key_type);
+]]
 
+ffi.cdef[[
 void ovsrec_bridge_set_auto_attach(const struct ovsrec_bridge *, const struct ovsrec_autoattach *auto_attach);
 void ovsrec_bridge_set_controller(const struct ovsrec_bridge *, struct ovsrec_controller **controller, size_t n_controller);
 void ovsrec_bridge_set_datapath_id(const struct ovsrec_bridge *, const char *datapath_id);
@@ -295,8 +319,9 @@ void ovsrec_bridge_set_rstp_status(const struct ovsrec_bridge *, const struct sm
 void ovsrec_bridge_set_sflow(const struct ovsrec_bridge *, const struct ovsrec_sflow *sflow);
 void ovsrec_bridge_set_status(const struct ovsrec_bridge *, const struct smap *);
 void ovsrec_bridge_set_stp_enable(const struct ovsrec_bridge *, bool stp_enable);
+]]
 
-
+ffi.cdef[[
 /* Controller table. */
 struct ovsrec_controller {
 	struct ovsdb_idl_row header_;
@@ -351,7 +376,9 @@ struct ovsrec_controller {
 	/* target column. */
 	char *target;	/* Always nonnull. */
 };
+]]
 
+ffi.cdef[[
 enum {
     OVSREC_CONTROLLER_COL_CONNECTION_MODE,
     OVSREC_CONTROLLER_COL_CONTROLLER_BURST_LIMIT,
@@ -370,41 +397,54 @@ enum {
     OVSREC_CONTROLLER_COL_TARGET,
     OVSREC_CONTROLLER_N_COLUMNS
 };
+]]
 
-#define ovsrec_controller_col_max_backoff (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_MAX_BACKOFF])
-#define ovsrec_controller_col_status (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_STATUS])
-#define ovsrec_controller_col_target (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_TARGET])
-#define ovsrec_controller_col_local_ip (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_LOCAL_IP])
-#define ovsrec_controller_col_connection_mode (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_CONNECTION_MODE])
-#define ovsrec_controller_col_other_config (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_OTHER_CONFIG])
-#define ovsrec_controller_col_controller_rate_limit (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_CONTROLLER_RATE_LIMIT])
-#define ovsrec_controller_col_inactivity_probe (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_INACTIVITY_PROBE])
-#define ovsrec_controller_col_local_netmask (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_LOCAL_NETMASK])
-#define ovsrec_controller_col_role (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_ROLE])
-#define ovsrec_controller_col_controller_burst_limit (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_CONTROLLER_BURST_LIMIT])
-#define ovsrec_controller_col_external_ids (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_EXTERNAL_IDS])
-#define ovsrec_controller_col_local_gateway (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_LOCAL_GATEWAY])
-#define ovsrec_controller_col_is_connected (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_IS_CONNECTED])
-#define ovsrec_controller_col_enable_async_messages (ovsrec_controller_columns[OVSREC_CONTROLLER_COL_ENABLE_ASYNC_MESSAGES])
+---[[
+exports.ovsrec_controller_col_max_backoff = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_MAX_BACKOFF])
+exports.ovsrec_controller_col_status = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_STATUS])
+exports.ovsrec_controller_col_target = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_TARGET])
+exports.ovsrec_controller_col_local_ip = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_LOCAL_IP])
+exports.ovsrec_controller_col_connection_mode = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_CONNECTION_MODE])
+exports.ovsrec_controller_col_other_config = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_OTHER_CONFIG])
+exports.ovsrec_controller_col_controller_rate_limit = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_CONTROLLER_RATE_LIMIT])
+exports.ovsrec_controller_col_inactivity_probe = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_INACTIVITY_PROBE])
+exports.ovsrec_controller_col_local_netmask = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_LOCAL_NETMASK])
+exports.ovsrec_controller_col_role = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_ROLE])
+exports.ovsrec_controller_col_controller_burst_limit = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_CONTROLLER_BURST_LIMIT])
+exports.ovsrec_controller_col_external_ids = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_EXTERNAL_IDS])
+exports.ovsrec_controller_col_local_gateway = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_LOCAL_GATEWAY])
+exports.ovsrec_controller_col_is_connected = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_IS_CONNECTED])
+exports.ovsrec_controller_col_enable_async_messages = (Lib_vswitch_idl.ovsrec_controller_columns[ffi.C.OVSREC_CONTROLLER_COL_ENABLE_ASYNC_MESSAGES])
+--]]
 
+ffi.cdef[[
 extern struct ovsdb_idl_column ovsrec_controller_columns[OVSREC_CONTROLLER_N_COLUMNS];
+]]
 
+ffi.cdef[[
 const struct ovsrec_controller *ovsrec_controller_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_controller *ovsrec_controller_first(const struct ovsdb_idl *);
 const struct ovsrec_controller *ovsrec_controller_next(const struct ovsrec_controller *);
-#define OVSREC_CONTROLLER_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_CONTROLLER_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_controller_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_controller_next(ROW))
-#define OVSREC_CONTROLLER_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_CONTROLLER_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_controller_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_controller_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_controller_init(struct ovsrec_controller *);
 void ovsrec_controller_delete(const struct ovsrec_controller *);
 struct ovsrec_controller *ovsrec_controller_insert(struct ovsdb_idl_txn *);
+]]
 
+ffi.cdef[[
 void ovsrec_controller_verify_connection_mode(const struct ovsrec_controller *);
 void ovsrec_controller_verify_controller_burst_limit(const struct ovsrec_controller *);
 void ovsrec_controller_verify_controller_rate_limit(const struct ovsrec_controller *);
@@ -420,7 +460,9 @@ void ovsrec_controller_verify_other_config(const struct ovsrec_controller *);
 void ovsrec_controller_verify_role(const struct ovsrec_controller *);
 void ovsrec_controller_verify_status(const struct ovsrec_controller *);
 void ovsrec_controller_verify_target(const struct ovsrec_controller *);
+]]
 
+ffi.cdef[[
 const struct ovsdb_datum *ovsrec_controller_get_connection_mode(const struct ovsrec_controller *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_controller_get_controller_burst_limit(const struct ovsrec_controller *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_controller_get_controller_rate_limit(const struct ovsrec_controller *, enum ovsdb_atomic_type key_type);
@@ -436,7 +478,9 @@ const struct ovsdb_datum *ovsrec_controller_get_other_config(const struct ovsrec
 const struct ovsdb_datum *ovsrec_controller_get_role(const struct ovsrec_controller *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_controller_get_status(const struct ovsrec_controller *, enum ovsdb_atomic_type key_type, enum ovsdb_atomic_type value_type);
 const struct ovsdb_datum *ovsrec_controller_get_target(const struct ovsrec_controller *, enum ovsdb_atomic_type key_type);
+]]
 
+ffi.cdef[[
 void ovsrec_controller_set_connection_mode(const struct ovsrec_controller *, const char *connection_mode);
 void ovsrec_controller_set_controller_burst_limit(const struct ovsrec_controller *, const int64_t *controller_burst_limit, size_t n_controller_burst_limit);
 void ovsrec_controller_set_controller_rate_limit(const struct ovsrec_controller *, const int64_t *controller_rate_limit, size_t n_controller_rate_limit);
@@ -452,8 +496,9 @@ void ovsrec_controller_set_other_config(const struct ovsrec_controller *, const 
 void ovsrec_controller_set_role(const struct ovsrec_controller *, const char *role);
 void ovsrec_controller_set_status(const struct ovsrec_controller *, const struct smap *);
 void ovsrec_controller_set_target(const struct ovsrec_controller *, const char *target);
+]]
 
-
+ffi.cdef[[
 /* Flow_Sample_Collector_Set table. */
 struct ovsrec_flow_sample_collector_set {
 	struct ovsdb_idl_row header_;
@@ -470,7 +515,9 @@ struct ovsrec_flow_sample_collector_set {
 	/* ipfix column. */
 	struct ovsrec_ipfix *ipfix;
 };
+]]
 
+ffi.cdef[[
 enum {
     OVSREC_FLOW_SAMPLE_COLLECTOR_SET_COL_BRIDGE,
     OVSREC_FLOW_SAMPLE_COLLECTOR_SET_COL_EXTERNAL_IDS,
@@ -478,46 +525,64 @@ enum {
     OVSREC_FLOW_SAMPLE_COLLECTOR_SET_COL_IPFIX,
     OVSREC_FLOW_SAMPLE_COLLECTOR_SET_N_COLUMNS
 };
+]]
 
-#define ovsrec_flow_sample_collector_set_col_bridge (ovsrec_flow_sample_collector_set_columns[OVSREC_FLOW_SAMPLE_COLLECTOR_SET_COL_BRIDGE])
-#define ovsrec_flow_sample_collector_set_col_external_ids (ovsrec_flow_sample_collector_set_columns[OVSREC_FLOW_SAMPLE_COLLECTOR_SET_COL_EXTERNAL_IDS])
-#define ovsrec_flow_sample_collector_set_col_id (ovsrec_flow_sample_collector_set_columns[OVSREC_FLOW_SAMPLE_COLLECTOR_SET_COL_ID])
-#define ovsrec_flow_sample_collector_set_col_ipfix (ovsrec_flow_sample_collector_set_columns[OVSREC_FLOW_SAMPLE_COLLECTOR_SET_COL_IPFIX])
+---[[
+exports.ovsrec_flow_sample_collector_set_col_bridge = (Lib_vswitch_idl.ovsrec_flow_sample_collector_set_columns[ffi.C.OVSREC_FLOW_SAMPLE_COLLECTOR_SET_COL_BRIDGE])
+exports.ovsrec_flow_sample_collector_set_col_external_ids = (Lib_vswitch_idl.ovsrec_flow_sample_collector_set_columns[ffi.C.OVSREC_FLOW_SAMPLE_COLLECTOR_SET_COL_EXTERNAL_IDS])
+exports.ovsrec_flow_sample_collector_set_col_id = (Lib_vswitch_idl.ovsrec_flow_sample_collector_set_columns[ffi.C.OVSREC_FLOW_SAMPLE_COLLECTOR_SET_COL_ID])
+exports.ovsrec_flow_sample_collector_set_col_ipfix = (Lib_vswitch_idl.ovsrec_flow_sample_collector_set_columns[ffi.C.OVSREC_FLOW_SAMPLE_COLLECTOR_SET_COL_IPFIX])
+--]]
 
+ffi.cdef[[
 extern struct ovsdb_idl_column ovsrec_flow_sample_collector_set_columns[OVSREC_FLOW_SAMPLE_COLLECTOR_SET_N_COLUMNS];
+]]
 
+ffi.cdef[[
 const struct ovsrec_flow_sample_collector_set *ovsrec_flow_sample_collector_set_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_flow_sample_collector_set *ovsrec_flow_sample_collector_set_first(const struct ovsdb_idl *);
 const struct ovsrec_flow_sample_collector_set *ovsrec_flow_sample_collector_set_next(const struct ovsrec_flow_sample_collector_set *);
-#define OVSREC_FLOW_SAMPLE_COLLECTOR_SET_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_FLOW_SAMPLE_COLLECTOR_SET_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_flow_sample_collector_set_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_flow_sample_collector_set_next(ROW))
-#define OVSREC_FLOW_SAMPLE_COLLECTOR_SET_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_FLOW_SAMPLE_COLLECTOR_SET_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_flow_sample_collector_set_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_flow_sample_collector_set_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_flow_sample_collector_set_init(struct ovsrec_flow_sample_collector_set *);
 void ovsrec_flow_sample_collector_set_delete(const struct ovsrec_flow_sample_collector_set *);
 struct ovsrec_flow_sample_collector_set *ovsrec_flow_sample_collector_set_insert(struct ovsdb_idl_txn *);
+]]
 
+ffi.cdef[[
 void ovsrec_flow_sample_collector_set_verify_bridge(const struct ovsrec_flow_sample_collector_set *);
 void ovsrec_flow_sample_collector_set_verify_external_ids(const struct ovsrec_flow_sample_collector_set *);
 void ovsrec_flow_sample_collector_set_verify_id(const struct ovsrec_flow_sample_collector_set *);
 void ovsrec_flow_sample_collector_set_verify_ipfix(const struct ovsrec_flow_sample_collector_set *);
+]]
 
+ffi.cdef[[
 const struct ovsdb_datum *ovsrec_flow_sample_collector_set_get_bridge(const struct ovsrec_flow_sample_collector_set *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_flow_sample_collector_set_get_external_ids(const struct ovsrec_flow_sample_collector_set *, enum ovsdb_atomic_type key_type, enum ovsdb_atomic_type value_type);
 const struct ovsdb_datum *ovsrec_flow_sample_collector_set_get_id(const struct ovsrec_flow_sample_collector_set *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_flow_sample_collector_set_get_ipfix(const struct ovsrec_flow_sample_collector_set *, enum ovsdb_atomic_type key_type);
+]]
 
+ffi.cdef[[
 void ovsrec_flow_sample_collector_set_set_bridge(const struct ovsrec_flow_sample_collector_set *, const struct ovsrec_bridge *bridge);
 void ovsrec_flow_sample_collector_set_set_external_ids(const struct ovsrec_flow_sample_collector_set *, const struct smap *);
 void ovsrec_flow_sample_collector_set_set_id(const struct ovsrec_flow_sample_collector_set *, int64_t id);
 void ovsrec_flow_sample_collector_set_set_ipfix(const struct ovsrec_flow_sample_collector_set *, const struct ovsrec_ipfix *ipfix);
+]]
 
-
+ffi.cdef[[
 /* Flow_Table table. */
 struct ovsrec_flow_table {
 	struct ovsdb_idl_row header_;
@@ -543,7 +608,9 @@ struct ovsrec_flow_table {
 	char **prefixes;
 	size_t n_prefixes;
 };
+]]
 
+ffi.cdef[[
 enum {
     OVSREC_FLOW_TABLE_COL_EXTERNAL_IDS,
     OVSREC_FLOW_TABLE_COL_FLOW_LIMIT,
@@ -553,54 +620,72 @@ enum {
     OVSREC_FLOW_TABLE_COL_PREFIXES,
     OVSREC_FLOW_TABLE_N_COLUMNS
 };
+]]
 
-#define ovsrec_flow_table_col_overflow_policy (ovsrec_flow_table_columns[OVSREC_FLOW_TABLE_COL_OVERFLOW_POLICY])
-#define ovsrec_flow_table_col_name (ovsrec_flow_table_columns[OVSREC_FLOW_TABLE_COL_NAME])
-#define ovsrec_flow_table_col_flow_limit (ovsrec_flow_table_columns[OVSREC_FLOW_TABLE_COL_FLOW_LIMIT])
-#define ovsrec_flow_table_col_prefixes (ovsrec_flow_table_columns[OVSREC_FLOW_TABLE_COL_PREFIXES])
-#define ovsrec_flow_table_col_groups (ovsrec_flow_table_columns[OVSREC_FLOW_TABLE_COL_GROUPS])
-#define ovsrec_flow_table_col_external_ids (ovsrec_flow_table_columns[OVSREC_FLOW_TABLE_COL_EXTERNAL_IDS])
+---[[
+exports.ovsrec_flow_table_col_overflow_policy = (Lib_vswitch_idl.ovsrec_flow_table_columns[ffi.C.OVSREC_FLOW_TABLE_COL_OVERFLOW_POLICY])
+exports.ovsrec_flow_table_col_name = (Lib_vswitch_idl.ovsrec_flow_table_columns[ffi.C.OVSREC_FLOW_TABLE_COL_NAME])
+exports.ovsrec_flow_table_col_flow_limit = (Lib_vswitch_idl.ovsrec_flow_table_columns[ffi.C.OVSREC_FLOW_TABLE_COL_FLOW_LIMIT])
+exports.ovsrec_flow_table_col_prefixes = (Lib_vswitch_idl.ovsrec_flow_table_columns[ffi.C.OVSREC_FLOW_TABLE_COL_PREFIXES])
+exports.ovsrec_flow_table_col_groups = (Lib_vswitch_idl.ovsrec_flow_table_columns[ffi.C.OVSREC_FLOW_TABLE_COL_GROUPS])
+exports.ovsrec_flow_table_col_external_ids = (Lib_vswitch_idl.ovsrec_flow_table_columns[ffi.C.OVSREC_FLOW_TABLE_COL_EXTERNAL_IDS])
+--]]
 
+ffi.cdef[[
 extern struct ovsdb_idl_column ovsrec_flow_table_columns[OVSREC_FLOW_TABLE_N_COLUMNS];
+]]
 
+ffi.cdef[[
 const struct ovsrec_flow_table *ovsrec_flow_table_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_flow_table *ovsrec_flow_table_first(const struct ovsdb_idl *);
 const struct ovsrec_flow_table *ovsrec_flow_table_next(const struct ovsrec_flow_table *);
-#define OVSREC_FLOW_TABLE_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_FLOW_TABLE_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_flow_table_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_flow_table_next(ROW))
-#define OVSREC_FLOW_TABLE_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_FLOW_TABLE_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_flow_table_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_flow_table_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_flow_table_init(struct ovsrec_flow_table *);
 void ovsrec_flow_table_delete(const struct ovsrec_flow_table *);
 struct ovsrec_flow_table *ovsrec_flow_table_insert(struct ovsdb_idl_txn *);
+]]
 
+ffi.cdef[[
 void ovsrec_flow_table_verify_external_ids(const struct ovsrec_flow_table *);
 void ovsrec_flow_table_verify_flow_limit(const struct ovsrec_flow_table *);
 void ovsrec_flow_table_verify_groups(const struct ovsrec_flow_table *);
 void ovsrec_flow_table_verify_name(const struct ovsrec_flow_table *);
 void ovsrec_flow_table_verify_overflow_policy(const struct ovsrec_flow_table *);
 void ovsrec_flow_table_verify_prefixes(const struct ovsrec_flow_table *);
+]]
 
+ffi.cdef[[
 const struct ovsdb_datum *ovsrec_flow_table_get_external_ids(const struct ovsrec_flow_table *, enum ovsdb_atomic_type key_type, enum ovsdb_atomic_type value_type);
 const struct ovsdb_datum *ovsrec_flow_table_get_flow_limit(const struct ovsrec_flow_table *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_flow_table_get_groups(const struct ovsrec_flow_table *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_flow_table_get_name(const struct ovsrec_flow_table *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_flow_table_get_overflow_policy(const struct ovsrec_flow_table *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_flow_table_get_prefixes(const struct ovsrec_flow_table *, enum ovsdb_atomic_type key_type);
+]]
 
+ffi.cdef[[
 void ovsrec_flow_table_set_external_ids(const struct ovsrec_flow_table *, const struct smap *);
 void ovsrec_flow_table_set_flow_limit(const struct ovsrec_flow_table *, const int64_t *flow_limit, size_t n_flow_limit);
 void ovsrec_flow_table_set_groups(const struct ovsrec_flow_table *, const char **groups, size_t n_groups);
 void ovsrec_flow_table_set_name(const struct ovsrec_flow_table *, const char *name);
 void ovsrec_flow_table_set_overflow_policy(const struct ovsrec_flow_table *, const char *overflow_policy);
 void ovsrec_flow_table_set_prefixes(const struct ovsrec_flow_table *, const char **prefixes, size_t n_prefixes);
+]]
 
-
+ffi.cdef[[
 /* IPFIX table. */
 struct ovsrec_ipfix {
 	struct ovsdb_idl_row header_;
@@ -635,7 +720,9 @@ struct ovsrec_ipfix {
 	char **targets;
 	size_t n_targets;
 };
+]]
 
+ffi.cdef[[
 enum {
     OVSREC_IPFIX_COL_CACHE_ACTIVE_TIMEOUT,
     OVSREC_IPFIX_COL_CACHE_MAX_FLOWS,
@@ -647,34 +734,47 @@ enum {
     OVSREC_IPFIX_COL_TARGETS,
     OVSREC_IPFIX_N_COLUMNS
 };
+]]
 
-#define ovsrec_ipfix_col_obs_point_id (ovsrec_ipfix_columns[OVSREC_IPFIX_COL_OBS_POINT_ID])
-#define ovsrec_ipfix_col_cache_active_timeout (ovsrec_ipfix_columns[OVSREC_IPFIX_COL_CACHE_ACTIVE_TIMEOUT])
-#define ovsrec_ipfix_col_cache_max_flows (ovsrec_ipfix_columns[OVSREC_IPFIX_COL_CACHE_MAX_FLOWS])
-#define ovsrec_ipfix_col_obs_domain_id (ovsrec_ipfix_columns[OVSREC_IPFIX_COL_OBS_DOMAIN_ID])
-#define ovsrec_ipfix_col_other_config (ovsrec_ipfix_columns[OVSREC_IPFIX_COL_OTHER_CONFIG])
-#define ovsrec_ipfix_col_external_ids (ovsrec_ipfix_columns[OVSREC_IPFIX_COL_EXTERNAL_IDS])
-#define ovsrec_ipfix_col_sampling (ovsrec_ipfix_columns[OVSREC_IPFIX_COL_SAMPLING])
-#define ovsrec_ipfix_col_targets (ovsrec_ipfix_columns[OVSREC_IPFIX_COL_TARGETS])
+---[[
+exports.ovsrec_ipfix_col_obs_point_id = (Lib_vswitch_idl.ovsrec_ipfix_columns[ffi.C.OVSREC_IPFIX_COL_OBS_POINT_ID])
+exports.ovsrec_ipfix_col_cache_active_timeout = (Lib_vswitch_idl.ovsrec_ipfix_columns[ffi.C.OVSREC_IPFIX_COL_CACHE_ACTIVE_TIMEOUT])
+exports.ovsrec_ipfix_col_cache_max_flows = (Lib_vswitch_idl.ovsrec_ipfix_columns[ffi.C.OVSREC_IPFIX_COL_CACHE_MAX_FLOWS])
+exports.ovsrec_ipfix_col_obs_domain_id = (Lib_vswitch_idl.ovsrec_ipfix_columns[ffi.C.OVSREC_IPFIX_COL_OBS_DOMAIN_ID])
+exports.ovsrec_ipfix_col_other_config = (Lib_vswitch_idl.ovsrec_ipfix_columns[ffi.C.OVSREC_IPFIX_COL_OTHER_CONFIG])
+exports.ovsrec_ipfix_col_external_ids = (Lib_vswitch_idl.ovsrec_ipfix_columns[ffi.C.OVSREC_IPFIX_COL_EXTERNAL_IDS])
+exports.ovsrec_ipfix_col_sampling = (Lib_vswitch_idl.ovsrec_ipfix_columns[ffi.C.OVSREC_IPFIX_COL_SAMPLING])
+exports.ovsrec_ipfix_col_targets = (Lib_vswitch_idl.ovsrec_ipfix_columns[ffi.C.OVSREC_IPFIX_COL_TARGETS])
+--]]
 
+ffi.cdef[[
 extern struct ovsdb_idl_column ovsrec_ipfix_columns[OVSREC_IPFIX_N_COLUMNS];
+]]
 
+ffi.cdef[[
 const struct ovsrec_ipfix *ovsrec_ipfix_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_ipfix *ovsrec_ipfix_first(const struct ovsdb_idl *);
 const struct ovsrec_ipfix *ovsrec_ipfix_next(const struct ovsrec_ipfix *);
-#define OVSREC_IPFIX_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_IPFIX_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_ipfix_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_ipfix_next(ROW))
-#define OVSREC_IPFIX_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_IPFIX_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_ipfix_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_ipfix_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_ipfix_init(struct ovsrec_ipfix *);
 void ovsrec_ipfix_delete(const struct ovsrec_ipfix *);
 struct ovsrec_ipfix *ovsrec_ipfix_insert(struct ovsdb_idl_txn *);
+]]
 
+ffi.cdef[[
 void ovsrec_ipfix_verify_cache_active_timeout(const struct ovsrec_ipfix *);
 void ovsrec_ipfix_verify_cache_max_flows(const struct ovsrec_ipfix *);
 void ovsrec_ipfix_verify_external_ids(const struct ovsrec_ipfix *);
@@ -683,7 +783,9 @@ void ovsrec_ipfix_verify_obs_point_id(const struct ovsrec_ipfix *);
 void ovsrec_ipfix_verify_other_config(const struct ovsrec_ipfix *);
 void ovsrec_ipfix_verify_sampling(const struct ovsrec_ipfix *);
 void ovsrec_ipfix_verify_targets(const struct ovsrec_ipfix *);
+]]
 
+ffi.cdef[[
 const struct ovsdb_datum *ovsrec_ipfix_get_cache_active_timeout(const struct ovsrec_ipfix *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_ipfix_get_cache_max_flows(const struct ovsrec_ipfix *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_ipfix_get_external_ids(const struct ovsrec_ipfix *, enum ovsdb_atomic_type key_type, enum ovsdb_atomic_type value_type);
@@ -692,7 +794,9 @@ const struct ovsdb_datum *ovsrec_ipfix_get_obs_point_id(const struct ovsrec_ipfi
 const struct ovsdb_datum *ovsrec_ipfix_get_other_config(const struct ovsrec_ipfix *, enum ovsdb_atomic_type key_type, enum ovsdb_atomic_type value_type);
 const struct ovsdb_datum *ovsrec_ipfix_get_sampling(const struct ovsrec_ipfix *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_ipfix_get_targets(const struct ovsrec_ipfix *, enum ovsdb_atomic_type key_type);
+]]
 
+ffi.cdef[[
 void ovsrec_ipfix_set_cache_active_timeout(const struct ovsrec_ipfix *, const int64_t *cache_active_timeout, size_t n_cache_active_timeout);
 void ovsrec_ipfix_set_cache_max_flows(const struct ovsrec_ipfix *, const int64_t *cache_max_flows, size_t n_cache_max_flows);
 void ovsrec_ipfix_set_external_ids(const struct ovsrec_ipfix *, const struct smap *);
@@ -701,8 +805,9 @@ void ovsrec_ipfix_set_obs_point_id(const struct ovsrec_ipfix *, const int64_t *o
 void ovsrec_ipfix_set_other_config(const struct ovsrec_ipfix *, const struct smap *);
 void ovsrec_ipfix_set_sampling(const struct ovsrec_ipfix *, const int64_t *sampling, size_t n_sampling);
 void ovsrec_ipfix_set_targets(const struct ovsrec_ipfix *, const char **targets, size_t n_targets);
+]]
 
-
+ffi.cdef[[
 /* Interface table. */
 struct ovsrec_interface {
 	struct ovsdb_idl_row header_;
@@ -855,53 +960,62 @@ enum {
     OVSREC_INTERFACE_N_COLUMNS
 };
 
-#define ovsrec_interface_col_cfm_remote_opstate (ovsrec_interface_columns[OVSREC_INTERFACE_COL_CFM_REMOTE_OPSTATE])
-#define ovsrec_interface_col_link_state (ovsrec_interface_columns[OVSREC_INTERFACE_COL_LINK_STATE])
-#define ovsrec_interface_col_cfm_fault (ovsrec_interface_columns[OVSREC_INTERFACE_COL_CFM_FAULT])
-#define ovsrec_interface_col_ofport_request (ovsrec_interface_columns[OVSREC_INTERFACE_COL_OFPORT_REQUEST])
-#define ovsrec_interface_col_ingress_policing_rate (ovsrec_interface_columns[OVSREC_INTERFACE_COL_INGRESS_POLICING_RATE])
-#define ovsrec_interface_col_link_resets (ovsrec_interface_columns[OVSREC_INTERFACE_COL_LINK_RESETS])
-#define ovsrec_interface_col_statistics (ovsrec_interface_columns[OVSREC_INTERFACE_COL_STATISTICS])
-#define ovsrec_interface_col_bfd (ovsrec_interface_columns[OVSREC_INTERFACE_COL_BFD])
-#define ovsrec_interface_col_duplex (ovsrec_interface_columns[OVSREC_INTERFACE_COL_DUPLEX])
-#define ovsrec_interface_col_mac_in_use (ovsrec_interface_columns[OVSREC_INTERFACE_COL_MAC_IN_USE])
-#define ovsrec_interface_col_bfd_status (ovsrec_interface_columns[OVSREC_INTERFACE_COL_BFD_STATUS])
-#define ovsrec_interface_col_type (ovsrec_interface_columns[OVSREC_INTERFACE_COL_TYPE])
-#define ovsrec_interface_col_lacp_current (ovsrec_interface_columns[OVSREC_INTERFACE_COL_LACP_CURRENT])
-#define ovsrec_interface_col_status (ovsrec_interface_columns[OVSREC_INTERFACE_COL_STATUS])
-#define ovsrec_interface_col_lldp (ovsrec_interface_columns[OVSREC_INTERFACE_COL_LLDP])
-#define ovsrec_interface_col_ingress_policing_burst (ovsrec_interface_columns[OVSREC_INTERFACE_COL_INGRESS_POLICING_BURST])
-#define ovsrec_interface_col_cfm_health (ovsrec_interface_columns[OVSREC_INTERFACE_COL_CFM_HEALTH])
-#define ovsrec_interface_col_error (ovsrec_interface_columns[OVSREC_INTERFACE_COL_ERROR])
-#define ovsrec_interface_col_mac (ovsrec_interface_columns[OVSREC_INTERFACE_COL_MAC])
-#define ovsrec_interface_col_admin_state (ovsrec_interface_columns[OVSREC_INTERFACE_COL_ADMIN_STATE])
-#define ovsrec_interface_col_external_ids (ovsrec_interface_columns[OVSREC_INTERFACE_COL_EXTERNAL_IDS])
-#define ovsrec_interface_col_ofport (ovsrec_interface_columns[OVSREC_INTERFACE_COL_OFPORT])
-#define ovsrec_interface_col_name (ovsrec_interface_columns[OVSREC_INTERFACE_COL_NAME])
-#define ovsrec_interface_col_other_config (ovsrec_interface_columns[OVSREC_INTERFACE_COL_OTHER_CONFIG])
-#define ovsrec_interface_col_link_speed (ovsrec_interface_columns[OVSREC_INTERFACE_COL_LINK_SPEED])
-#define ovsrec_interface_col_mtu (ovsrec_interface_columns[OVSREC_INTERFACE_COL_MTU])
-#define ovsrec_interface_col_cfm_flap_count (ovsrec_interface_columns[OVSREC_INTERFACE_COL_CFM_FLAP_COUNT])
-#define ovsrec_interface_col_cfm_mpid (ovsrec_interface_columns[OVSREC_INTERFACE_COL_CFM_MPID])
-#define ovsrec_interface_col_ifindex (ovsrec_interface_columns[OVSREC_INTERFACE_COL_IFINDEX])
-#define ovsrec_interface_col_options (ovsrec_interface_columns[OVSREC_INTERFACE_COL_OPTIONS])
-#define ovsrec_interface_col_cfm_fault_status (ovsrec_interface_columns[OVSREC_INTERFACE_COL_CFM_FAULT_STATUS])
-#define ovsrec_interface_col_cfm_remote_mpids (ovsrec_interface_columns[OVSREC_INTERFACE_COL_CFM_REMOTE_MPIDS])
-
 extern struct ovsdb_idl_column ovsrec_interface_columns[OVSREC_INTERFACE_N_COLUMNS];
+]]
 
+---[[
+exports.ovsrec_interface_col_cfm_remote_opstate = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_CFM_REMOTE_OPSTATE])
+exports.ovsrec_interface_col_link_state = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_LINK_STATE])
+exports.ovsrec_interface_col_cfm_fault = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_CFM_FAULT])
+exports.ovsrec_interface_col_ofport_request = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_OFPORT_REQUEST])
+exports.ovsrec_interface_col_ingress_policing_rate = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_INGRESS_POLICING_RATE])
+exports.ovsrec_interface_col_link_resets = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_LINK_RESETS])
+exports.ovsrec_interface_col_statistics = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_STATISTICS])
+exports.ovsrec_interface_col_bfd = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_BFD])
+exports.ovsrec_interface_col_duplex = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_DUPLEX])
+exports.ovsrec_interface_col_mac_in_use = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_MAC_IN_USE])
+exports.ovsrec_interface_col_bfd_status = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_BFD_STATUS])
+exports.ovsrec_interface_col_type = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_TYPE])
+exports.ovsrec_interface_col_lacp_current = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_LACP_CURRENT])
+exports.ovsrec_interface_col_status = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_STATUS])
+exports.ovsrec_interface_col_lldp = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_LLDP])
+exports.ovsrec_interface_col_ingress_policing_burst = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_INGRESS_POLICING_BURST])
+exports.ovsrec_interface_col_cfm_health = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_CFM_HEALTH])
+exports.ovsrec_interface_col_error = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_ERROR])
+exports.ovsrec_interface_col_mac = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_MAC])
+exports.ovsrec_interface_col_admin_state = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_ADMIN_STATE])
+exports.ovsrec_interface_col_external_ids = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_EXTERNAL_IDS])
+exports.ovsrec_interface_col_ofport = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_OFPORT])
+exports.ovsrec_interface_col_name = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_NAME])
+exports.ovsrec_interface_col_other_config = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_OTHER_CONFIG])
+exports.ovsrec_interface_col_link_speed = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_LINK_SPEED])
+exports.ovsrec_interface_col_mtu = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_MTU])
+exports.ovsrec_interface_col_cfm_flap_count = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_CFM_FLAP_COUNT])
+exports.ovsrec_interface_col_cfm_mpid = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_CFM_MPID])
+exports.ovsrec_interface_col_ifindex = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_IFINDEX])
+exports.ovsrec_interface_col_options = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_OPTIONS])
+exports.ovsrec_interface_col_cfm_fault_status = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_CFM_FAULT_STATUS])
+exports.ovsrec_interface_col_cfm_remote_mpids = (Lib_vswitch_idl.ovsrec_interface_columns[ffi.C.OVSREC_INTERFACE_COL_CFM_REMOTE_MPIDS])
+--]]
+
+ffi.cdef[[
 const struct ovsrec_interface *ovsrec_interface_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_interface *ovsrec_interface_first(const struct ovsdb_idl *);
 const struct ovsrec_interface *ovsrec_interface_next(const struct ovsrec_interface *);
-#define OVSREC_INTERFACE_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_INTERFACE_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_interface_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_interface_next(ROW))
-#define OVSREC_INTERFACE_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_INTERFACE_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_interface_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_interface_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_interface_init(struct ovsrec_interface *);
 void ovsrec_interface_delete(const struct ovsrec_interface *);
 struct ovsrec_interface *ovsrec_interface_insert(struct ovsdb_idl_txn *);
@@ -1004,8 +1118,9 @@ void ovsrec_interface_set_other_config(const struct ovsrec_interface *, const st
 void ovsrec_interface_set_statistics(const struct ovsrec_interface *, const char **key_statistics, const int64_t *value_statistics, size_t n_statistics);
 void ovsrec_interface_set_status(const struct ovsrec_interface *, const struct smap *);
 void ovsrec_interface_set_type(const struct ovsrec_interface *, const char *type);
+]]
 
-
+ffi.cdef[[
 /* Manager table. */
 struct ovsrec_manager {
 	struct ovsdb_idl_row header_;
@@ -1049,29 +1164,38 @@ enum {
     OVSREC_MANAGER_N_COLUMNS
 };
 
-#define ovsrec_manager_col_max_backoff (ovsrec_manager_columns[OVSREC_MANAGER_COL_MAX_BACKOFF])
-#define ovsrec_manager_col_status (ovsrec_manager_columns[OVSREC_MANAGER_COL_STATUS])
-#define ovsrec_manager_col_target (ovsrec_manager_columns[OVSREC_MANAGER_COL_TARGET])
-#define ovsrec_manager_col_connection_mode (ovsrec_manager_columns[OVSREC_MANAGER_COL_CONNECTION_MODE])
-#define ovsrec_manager_col_other_config (ovsrec_manager_columns[OVSREC_MANAGER_COL_OTHER_CONFIG])
-#define ovsrec_manager_col_inactivity_probe (ovsrec_manager_columns[OVSREC_MANAGER_COL_INACTIVITY_PROBE])
-#define ovsrec_manager_col_external_ids (ovsrec_manager_columns[OVSREC_MANAGER_COL_EXTERNAL_IDS])
-#define ovsrec_manager_col_is_connected (ovsrec_manager_columns[OVSREC_MANAGER_COL_IS_CONNECTED])
-
 extern struct ovsdb_idl_column ovsrec_manager_columns[OVSREC_MANAGER_N_COLUMNS];
+]]
 
+---[[
+exports.ovsrec_manager_col_max_backoff = (Lib_vswitch_idl.ovsrec_manager_columns[ffi.C.OVSREC_MANAGER_COL_MAX_BACKOFF])
+exports.ovsrec_manager_col_status = (Lib_vswitch_idl.ovsrec_manager_columns[ffi.C.OVSREC_MANAGER_COL_STATUS])
+exports.ovsrec_manager_col_target = (Lib_vswitch_idl.ovsrec_manager_columns[ffi.C.OVSREC_MANAGER_COL_TARGET])
+exports.ovsrec_manager_col_connection_mode = (Lib_vswitch_idl.ovsrec_manager_columns[ffi.C.OVSREC_MANAGER_COL_CONNECTION_MODE])
+exports.ovsrec_manager_col_other_config = (Lib_vswitch_idl.ovsrec_manager_columns[ffi.C.OVSREC_MANAGER_COL_OTHER_CONFIG])
+exports.ovsrec_manager_col_inactivity_probe = (Lib_vswitch_idl.ovsrec_manager_columns[ffi.C.OVSREC_MANAGER_COL_INACTIVITY_PROBE])
+exports.ovsrec_manager_col_external_ids = (Lib_vswitch_idl.ovsrec_manager_columns[ffi.C.OVSREC_MANAGER_COL_EXTERNAL_IDS])
+exports.ovsrec_manager_col_is_connected = (Lib_vswitch_idl.ovsrec_manager_columns[ffi.C.OVSREC_MANAGER_COL_IS_CONNECTED])
+--]]
+
+ffi.cdef[[
 const struct ovsrec_manager *ovsrec_manager_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_manager *ovsrec_manager_first(const struct ovsdb_idl *);
 const struct ovsrec_manager *ovsrec_manager_next(const struct ovsrec_manager *);
-#define OVSREC_MANAGER_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_MANAGER_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_manager_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_manager_next(ROW))
-#define OVSREC_MANAGER_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_MANAGER_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_manager_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_manager_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_manager_init(struct ovsrec_manager *);
 void ovsrec_manager_delete(const struct ovsrec_manager *);
 struct ovsrec_manager *ovsrec_manager_insert(struct ovsdb_idl_txn *);
@@ -1102,8 +1226,9 @@ void ovsrec_manager_set_max_backoff(const struct ovsrec_manager *, const int64_t
 void ovsrec_manager_set_other_config(const struct ovsrec_manager *, const struct smap *);
 void ovsrec_manager_set_status(const struct ovsrec_manager *, const struct smap *);
 void ovsrec_manager_set_target(const struct ovsrec_manager *, const char *target);
+]]
 
-
+ffi.cdef[[
 /* Mirror table. */
 struct ovsrec_mirror {
 	struct ovsdb_idl_row header_;
@@ -1155,30 +1280,39 @@ enum {
     OVSREC_MIRROR_N_COLUMNS
 };
 
-#define ovsrec_mirror_col_output_port (ovsrec_mirror_columns[OVSREC_MIRROR_COL_OUTPUT_PORT])
-#define ovsrec_mirror_col_select_src_port (ovsrec_mirror_columns[OVSREC_MIRROR_COL_SELECT_SRC_PORT])
-#define ovsrec_mirror_col_statistics (ovsrec_mirror_columns[OVSREC_MIRROR_COL_STATISTICS])
-#define ovsrec_mirror_col_name (ovsrec_mirror_columns[OVSREC_MIRROR_COL_NAME])
-#define ovsrec_mirror_col_select_all (ovsrec_mirror_columns[OVSREC_MIRROR_COL_SELECT_ALL])
-#define ovsrec_mirror_col_select_dst_port (ovsrec_mirror_columns[OVSREC_MIRROR_COL_SELECT_DST_PORT])
-#define ovsrec_mirror_col_external_ids (ovsrec_mirror_columns[OVSREC_MIRROR_COL_EXTERNAL_IDS])
-#define ovsrec_mirror_col_output_vlan (ovsrec_mirror_columns[OVSREC_MIRROR_COL_OUTPUT_VLAN])
-#define ovsrec_mirror_col_select_vlan (ovsrec_mirror_columns[OVSREC_MIRROR_COL_SELECT_VLAN])
-
 extern struct ovsdb_idl_column ovsrec_mirror_columns[OVSREC_MIRROR_N_COLUMNS];
+]]
 
+---[[
+exports.ovsrec_mirror_col_output_port = (Lib_vswitch_idl.ovsrec_mirror_columns[ffi.C.OVSREC_MIRROR_COL_OUTPUT_PORT])
+exports.ovsrec_mirror_col_select_src_port = (Lib_vswitch_idl.ovsrec_mirror_columns[ffi.C.OVSREC_MIRROR_COL_SELECT_SRC_PORT])
+exports.ovsrec_mirror_col_statistics = (Lib_vswitch_idl.ovsrec_mirror_columns[ffi.C.OVSREC_MIRROR_COL_STATISTICS])
+exports.ovsrec_mirror_col_name = (Lib_vswitch_idl.ovsrec_mirror_columns[ffi.C.OVSREC_MIRROR_COL_NAME])
+exports.ovsrec_mirror_col_select_all = (Lib_vswitch_idl.ovsrec_mirror_columns[ffi.C.OVSREC_MIRROR_COL_SELECT_ALL])
+exports.ovsrec_mirror_col_select_dst_port = (Lib_vswitch_idl.ovsrec_mirror_columns[ffi.C.OVSREC_MIRROR_COL_SELECT_DST_PORT])
+exports.ovsrec_mirror_col_external_ids = (Lib_vswitch_idl.ovsrec_mirror_columns[ffi.C.OVSREC_MIRROR_COL_EXTERNAL_IDS])
+exports.ovsrec_mirror_col_output_vlan = (Lib_vswitch_idl.ovsrec_mirror_columns[ffi.C.OVSREC_MIRROR_COL_OUTPUT_VLAN])
+exports.ovsrec_mirror_col_select_vlan = (Lib_vswitch_idl.ovsrec_mirror_columns[ffi.C.OVSREC_MIRROR_COL_SELECT_VLAN])
+--]]
+
+ffi.cdef[[
 const struct ovsrec_mirror *ovsrec_mirror_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_mirror *ovsrec_mirror_first(const struct ovsdb_idl *);
 const struct ovsrec_mirror *ovsrec_mirror_next(const struct ovsrec_mirror *);
-#define OVSREC_MIRROR_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_MIRROR_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_mirror_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_mirror_next(ROW))
-#define OVSREC_MIRROR_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_MIRROR_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_mirror_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_mirror_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_mirror_init(struct ovsrec_mirror *);
 void ovsrec_mirror_delete(const struct ovsrec_mirror *);
 struct ovsrec_mirror *ovsrec_mirror_insert(struct ovsdb_idl_txn *);
@@ -1212,8 +1346,9 @@ void ovsrec_mirror_set_select_dst_port(const struct ovsrec_mirror *, struct ovsr
 void ovsrec_mirror_set_select_src_port(const struct ovsrec_mirror *, struct ovsrec_port **select_src_port, size_t n_select_src_port);
 void ovsrec_mirror_set_select_vlan(const struct ovsrec_mirror *, const int64_t *select_vlan, size_t n_select_vlan);
 void ovsrec_mirror_set_statistics(const struct ovsrec_mirror *, const char **key_statistics, const int64_t *value_statistics, size_t n_statistics);
+]]
 
-
+ffi.cdef[[
 /* NetFlow table. */
 struct ovsrec_netflow {
 	struct ovsdb_idl_row header_;
@@ -1250,27 +1385,37 @@ enum {
     OVSREC_NETFLOW_N_COLUMNS
 };
 
-#define ovsrec_netflow_col_engine_id (ovsrec_netflow_columns[OVSREC_NETFLOW_COL_ENGINE_ID])
-#define ovsrec_netflow_col_active_timeout (ovsrec_netflow_columns[OVSREC_NETFLOW_COL_ACTIVE_TIMEOUT])
-#define ovsrec_netflow_col_add_id_to_interface (ovsrec_netflow_columns[OVSREC_NETFLOW_COL_ADD_ID_TO_INTERFACE])
-#define ovsrec_netflow_col_external_ids (ovsrec_netflow_columns[OVSREC_NETFLOW_COL_EXTERNAL_IDS])
-#define ovsrec_netflow_col_targets (ovsrec_netflow_columns[OVSREC_NETFLOW_COL_TARGETS])
-#define ovsrec_netflow_col_engine_type (ovsrec_netflow_columns[OVSREC_NETFLOW_COL_ENGINE_TYPE])
-
 extern struct ovsdb_idl_column ovsrec_netflow_columns[OVSREC_NETFLOW_N_COLUMNS];
+]]
 
+---[[
+exports.ovsrec_netflow_col_engine_id = (Lib_vswitch_idl.ovsrec_netflow_columns[ffi.C.OVSREC_NETFLOW_COL_ENGINE_ID])
+exports.ovsrec_netflow_col_active_timeout = (Lib_vswitch_idl.ovsrec_netflow_columns[ffi.C.OVSREC_NETFLOW_COL_ACTIVE_TIMEOUT])
+exports.ovsrec_netflow_col_add_id_to_interface = (Lib_vswitch_idl.ovsrec_netflow_columns[ffi.C.OVSREC_NETFLOW_COL_ADD_ID_TO_INTERFACE])
+exports.ovsrec_netflow_col_external_ids = (Lib_vswitch_idl.ovsrec_netflow_columns[ffi.C.OVSREC_NETFLOW_COL_EXTERNAL_IDS])
+exports.ovsrec_netflow_col_targets = (Lib_vswitch_idl.ovsrec_netflow_columns[ffi.C.OVSREC_NETFLOW_COL_TARGETS])
+exports.ovsrec_netflow_col_engine_type = (Lib_vswitch_idl.ovsrec_netflow_columns[ffi.C.OVSREC_NETFLOW_COL_ENGINE_TYPE])
+--]]
+
+
+ffi.cdef[[
 const struct ovsrec_netflow *ovsrec_netflow_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_netflow *ovsrec_netflow_first(const struct ovsdb_idl *);
 const struct ovsrec_netflow *ovsrec_netflow_next(const struct ovsrec_netflow *);
-#define OVSREC_NETFLOW_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_NETFLOW_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_netflow_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_netflow_next(ROW))
-#define OVSREC_NETFLOW_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_NETFLOW_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_netflow_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_netflow_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_netflow_init(struct ovsrec_netflow *);
 void ovsrec_netflow_delete(const struct ovsrec_netflow *);
 struct ovsrec_netflow *ovsrec_netflow_insert(struct ovsdb_idl_txn *);
@@ -1295,8 +1440,9 @@ void ovsrec_netflow_set_engine_id(const struct ovsrec_netflow *, const int64_t *
 void ovsrec_netflow_set_engine_type(const struct ovsrec_netflow *, const int64_t *engine_type, size_t n_engine_type);
 void ovsrec_netflow_set_external_ids(const struct ovsrec_netflow *, const struct smap *);
 void ovsrec_netflow_set_targets(const struct ovsrec_netflow *, const char **targets, size_t n_targets);
+]]
 
-
+ffi.cdef[[
 /* Open_vSwitch table. */
 struct ovsrec_open_vswitch {
 	struct ovsdb_idl_row header_;
@@ -1366,35 +1512,44 @@ enum {
     OVSREC_OPEN_VSWITCH_N_COLUMNS
 };
 
-#define ovsrec_open_vswitch_col_db_version (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_DB_VERSION])
-#define ovsrec_open_vswitch_col_statistics (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_STATISTICS])
-#define ovsrec_open_vswitch_col_datapath_types (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_DATAPATH_TYPES])
-#define ovsrec_open_vswitch_col_iface_types (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_IFACE_TYPES])
-#define ovsrec_open_vswitch_col_next_cfg (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_NEXT_CFG])
-#define ovsrec_open_vswitch_col_ovs_version (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_OVS_VERSION])
-#define ovsrec_open_vswitch_col_other_config (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_OTHER_CONFIG])
-#define ovsrec_open_vswitch_col_ssl (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_SSL])
-#define ovsrec_open_vswitch_col_bridges (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_BRIDGES])
-#define ovsrec_open_vswitch_col_external_ids (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_EXTERNAL_IDS])
-#define ovsrec_open_vswitch_col_system_type (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_SYSTEM_TYPE])
-#define ovsrec_open_vswitch_col_system_version (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_SYSTEM_VERSION])
-#define ovsrec_open_vswitch_col_cur_cfg (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_CUR_CFG])
-#define ovsrec_open_vswitch_col_manager_options (ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_COL_MANAGER_OPTIONS])
-
 extern struct ovsdb_idl_column ovsrec_open_vswitch_columns[OVSREC_OPEN_VSWITCH_N_COLUMNS];
+]]
 
+---[[
+exports.ovsrec_open_vswitch_col_db_version = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_DB_VERSION])
+exports.ovsrec_open_vswitch_col_statistics = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_STATISTICS])
+exports.ovsrec_open_vswitch_col_datapath_types = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_DATAPATH_TYPES])
+exports.ovsrec_open_vswitch_col_iface_types = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_IFACE_TYPES])
+exports.ovsrec_open_vswitch_col_next_cfg = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_NEXT_CFG])
+exports.ovsrec_open_vswitch_col_ovs_version = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_OVS_VERSION])
+exports.ovsrec_open_vswitch_col_other_config = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_OTHER_CONFIG])
+exports.ovsrec_open_vswitch_col_ssl = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_SSL])
+exports.ovsrec_open_vswitch_col_bridges = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_BRIDGES])
+exports.ovsrec_open_vswitch_col_external_ids = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_EXTERNAL_IDS])
+exports.ovsrec_open_vswitch_col_system_type = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_SYSTEM_TYPE])
+exports.ovsrec_open_vswitch_col_system_version = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_SYSTEM_VERSION])
+exports.ovsrec_open_vswitch_col_cur_cfg = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_CUR_CFG])
+exports.ovsrec_open_vswitch_col_manager_options = (Lib_vswitch_idl.ovsrec_open_vswitch_columns[ffi.C.OVSREC_OPEN_VSWITCH_COL_MANAGER_OPTIONS])
+--]]
+
+ffi.cdef[[
 const struct ovsrec_open_vswitch *ovsrec_open_vswitch_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_open_vswitch *ovsrec_open_vswitch_first(const struct ovsdb_idl *);
 const struct ovsrec_open_vswitch *ovsrec_open_vswitch_next(const struct ovsrec_open_vswitch *);
-#define OVSREC_OPEN_VSWITCH_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_OPEN_VSWITCH_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_open_vswitch_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_open_vswitch_next(ROW))
-#define OVSREC_OPEN_VSWITCH_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_OPEN_VSWITCH_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_open_vswitch_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_open_vswitch_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_open_vswitch_init(struct ovsrec_open_vswitch *);
 void ovsrec_open_vswitch_delete(const struct ovsrec_open_vswitch *);
 struct ovsrec_open_vswitch *ovsrec_open_vswitch_insert(struct ovsdb_idl_txn *);
@@ -1443,8 +1598,9 @@ void ovsrec_open_vswitch_set_ssl(const struct ovsrec_open_vswitch *, const struc
 void ovsrec_open_vswitch_set_statistics(const struct ovsrec_open_vswitch *, const struct smap *);
 void ovsrec_open_vswitch_set_system_type(const struct ovsrec_open_vswitch *, const char *system_type);
 void ovsrec_open_vswitch_set_system_version(const struct ovsrec_open_vswitch *, const char *system_version);
+]]
 
-
+ffi.cdef[[
 /* Port table. */
 struct ovsrec_port {
 	struct ovsdb_idl_row header_;
@@ -1541,41 +1697,50 @@ enum {
     OVSREC_PORT_N_COLUMNS
 };
 
-#define ovsrec_port_col_status (ovsrec_port_columns[OVSREC_PORT_COL_STATUS])
-#define ovsrec_port_col_statistics (ovsrec_port_columns[OVSREC_PORT_COL_STATISTICS])
-#define ovsrec_port_col_qos (ovsrec_port_columns[OVSREC_PORT_COL_QOS])
-#define ovsrec_port_col_name (ovsrec_port_columns[OVSREC_PORT_COL_NAME])
-#define ovsrec_port_col_bond_downdelay (ovsrec_port_columns[OVSREC_PORT_COL_BOND_DOWNDELAY])
-#define ovsrec_port_col_interfaces (ovsrec_port_columns[OVSREC_PORT_COL_INTERFACES])
-#define ovsrec_port_col_other_config (ovsrec_port_columns[OVSREC_PORT_COL_OTHER_CONFIG])
-#define ovsrec_port_col_bond_fake_iface (ovsrec_port_columns[OVSREC_PORT_COL_BOND_FAKE_IFACE])
-#define ovsrec_port_col_mac (ovsrec_port_columns[OVSREC_PORT_COL_MAC])
-#define ovsrec_port_col_bond_active_slave (ovsrec_port_columns[OVSREC_PORT_COL_BOND_ACTIVE_SLAVE])
-#define ovsrec_port_col_lacp (ovsrec_port_columns[OVSREC_PORT_COL_LACP])
-#define ovsrec_port_col_rstp_status (ovsrec_port_columns[OVSREC_PORT_COL_RSTP_STATUS])
-#define ovsrec_port_col_rstp_statistics (ovsrec_port_columns[OVSREC_PORT_COL_RSTP_STATISTICS])
-#define ovsrec_port_col_tag (ovsrec_port_columns[OVSREC_PORT_COL_TAG])
-#define ovsrec_port_col_trunks (ovsrec_port_columns[OVSREC_PORT_COL_TRUNKS])
-#define ovsrec_port_col_vlan_mode (ovsrec_port_columns[OVSREC_PORT_COL_VLAN_MODE])
-#define ovsrec_port_col_external_ids (ovsrec_port_columns[OVSREC_PORT_COL_EXTERNAL_IDS])
-#define ovsrec_port_col_fake_bridge (ovsrec_port_columns[OVSREC_PORT_COL_FAKE_BRIDGE])
-#define ovsrec_port_col_bond_updelay (ovsrec_port_columns[OVSREC_PORT_COL_BOND_UPDELAY])
-#define ovsrec_port_col_bond_mode (ovsrec_port_columns[OVSREC_PORT_COL_BOND_MODE])
-
 extern struct ovsdb_idl_column ovsrec_port_columns[OVSREC_PORT_N_COLUMNS];
+]]
 
+---[[
+exports.ovsrec_port_col_status = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_STATUS])
+exports.ovsrec_port_col_statistics = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_STATISTICS])
+exports.ovsrec_port_col_qos = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_QOS])
+exports.ovsrec_port_col_name = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_NAME])
+exports.ovsrec_port_col_bond_downdelay = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_BOND_DOWNDELAY])
+exports.ovsrec_port_col_interfaces = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_INTERFACES])
+exports.ovsrec_port_col_other_config = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_OTHER_CONFIG])
+exports.ovsrec_port_col_bond_fake_iface = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_BOND_FAKE_IFACE])
+exports.ovsrec_port_col_mac = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_MAC])
+exports.ovsrec_port_col_bond_active_slave = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_BOND_ACTIVE_SLAVE])
+exports.ovsrec_port_col_lacp = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_LACP])
+exports.ovsrec_port_col_rstp_status = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_RSTP_STATUS])
+exports.ovsrec_port_col_rstp_statistics = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_RSTP_STATISTICS])
+exports.ovsrec_port_col_tag = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_TAG])
+exports.ovsrec_port_col_trunks = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_TRUNKS])
+exports.ovsrec_port_col_vlan_mode = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_VLAN_MODE])
+exports.ovsrec_port_col_external_ids = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_EXTERNAL_IDS])
+exports.ovsrec_port_col_fake_bridge = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_FAKE_BRIDGE])
+exports.ovsrec_port_col_bond_updelay = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_BOND_UPDELAY])
+exports.ovsrec_port_col_bond_mode = (Lib_vswitch_idl.ovsrec_port_columns[ffi.C.OVSREC_PORT_COL_BOND_MODE])
+--]]
+
+ffi.cdef[[
 const struct ovsrec_port *ovsrec_port_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_port *ovsrec_port_first(const struct ovsdb_idl *);
 const struct ovsrec_port *ovsrec_port_next(const struct ovsrec_port *);
-#define OVSREC_PORT_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_PORT_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_port_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_port_next(ROW))
-#define OVSREC_PORT_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_PORT_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_port_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_port_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_port_init(struct ovsrec_port *);
 void ovsrec_port_delete(const struct ovsrec_port *);
 struct ovsrec_port *ovsrec_port_insert(struct ovsdb_idl_txn *);
@@ -1642,8 +1807,9 @@ void ovsrec_port_set_status(const struct ovsrec_port *, const struct smap *);
 void ovsrec_port_set_tag(const struct ovsrec_port *, const int64_t *tag, size_t n_tag);
 void ovsrec_port_set_trunks(const struct ovsrec_port *, const int64_t *trunks, size_t n_trunks);
 void ovsrec_port_set_vlan_mode(const struct ovsrec_port *, const char *vlan_mode);
+]]
 
-
+ffi.cdef[[
 /* QoS table. */
 struct ovsrec_qos {
 	struct ovsdb_idl_row header_;
@@ -1671,25 +1837,34 @@ enum {
     OVSREC_QOS_N_COLUMNS
 };
 
-#define ovsrec_qos_col_external_ids (ovsrec_qos_columns[OVSREC_QOS_COL_EXTERNAL_IDS])
-#define ovsrec_qos_col_other_config (ovsrec_qos_columns[OVSREC_QOS_COL_OTHER_CONFIG])
-#define ovsrec_qos_col_type (ovsrec_qos_columns[OVSREC_QOS_COL_TYPE])
-#define ovsrec_qos_col_queues (ovsrec_qos_columns[OVSREC_QOS_COL_QUEUES])
-
 extern struct ovsdb_idl_column ovsrec_qos_columns[OVSREC_QOS_N_COLUMNS];
+]]
 
+---[[
+exports.ovsrec_qos_col_external_ids = (Lib_vswitch_idl.ovsrec_qos_columns[ffi.C.OVSREC_QOS_COL_EXTERNAL_IDS])
+exports.ovsrec_qos_col_other_config = (Lib_vswitch_idl.ovsrec_qos_columns[ffi.C.OVSREC_QOS_COL_OTHER_CONFIG])
+exports.ovsrec_qos_col_type = (Lib_vswitch_idl.ovsrec_qos_columns[ffi.C.OVSREC_QOS_COL_TYPE])
+exports.ovsrec_qos_col_queues = (Lib_vswitch_idl.ovsrec_qos_columns[ffi.C.OVSREC_QOS_COL_QUEUES])
+--]]
+
+ffi.cdef[[
 const struct ovsrec_qos *ovsrec_qos_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_qos *ovsrec_qos_first(const struct ovsdb_idl *);
 const struct ovsrec_qos *ovsrec_qos_next(const struct ovsrec_qos *);
-#define OVSREC_QOS_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_QOS_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_qos_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_qos_next(ROW))
-#define OVSREC_QOS_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_QOS_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_qos_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_qos_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_qos_init(struct ovsrec_qos *);
 void ovsrec_qos_delete(const struct ovsrec_qos *);
 struct ovsrec_qos *ovsrec_qos_insert(struct ovsdb_idl_txn *);
@@ -1708,8 +1883,9 @@ void ovsrec_qos_set_external_ids(const struct ovsrec_qos *, const struct smap *)
 void ovsrec_qos_set_other_config(const struct ovsrec_qos *, const struct smap *);
 void ovsrec_qos_set_queues(const struct ovsrec_qos *, const int64_t *key_queues, struct ovsrec_queue **value_queues, size_t n_queues);
 void ovsrec_qos_set_type(const struct ovsrec_qos *, const char *type);
+]]
 
-
+ffi.cdef[[
 /* Queue table. */
 struct ovsrec_queue {
 	struct ovsdb_idl_row header_;
@@ -1732,24 +1908,33 @@ enum {
     OVSREC_QUEUE_N_COLUMNS
 };
 
-#define ovsrec_queue_col_external_ids (ovsrec_queue_columns[OVSREC_QUEUE_COL_EXTERNAL_IDS])
-#define ovsrec_queue_col_other_config (ovsrec_queue_columns[OVSREC_QUEUE_COL_OTHER_CONFIG])
-#define ovsrec_queue_col_dscp (ovsrec_queue_columns[OVSREC_QUEUE_COL_DSCP])
-
 extern struct ovsdb_idl_column ovsrec_queue_columns[OVSREC_QUEUE_N_COLUMNS];
+]]
 
+---[[
+exports.ovsrec_queue_col_external_ids = (Lib_vswitch_idl.ovsrec_queue_columns[ffi.C.OVSREC_QUEUE_COL_EXTERNAL_IDS])
+exports.ovsrec_queue_col_other_config = (Lib_vswitch_idl.ovsrec_queue_columns[ffi.C.OVSREC_QUEUE_COL_OTHER_CONFIG])
+exports.ovsrec_queue_col_dscp = (Lib_vswitch_idl.ovsrec_queue_columns[ffi.C.OVSREC_QUEUE_COL_DSCP])
+--]]
+
+ffi.cdef[[
 const struct ovsrec_queue *ovsrec_queue_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_queue *ovsrec_queue_first(const struct ovsdb_idl *);
 const struct ovsrec_queue *ovsrec_queue_next(const struct ovsrec_queue *);
-#define OVSREC_QUEUE_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_QUEUE_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_queue_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_queue_next(ROW))
-#define OVSREC_QUEUE_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_QUEUE_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_queue_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_queue_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+]=]
 
+ffi.cdef[[
 void ovsrec_queue_init(struct ovsrec_queue *);
 void ovsrec_queue_delete(const struct ovsrec_queue *);
 struct ovsrec_queue *ovsrec_queue_insert(struct ovsdb_idl_txn *);
@@ -1765,8 +1950,9 @@ const struct ovsdb_datum *ovsrec_queue_get_other_config(const struct ovsrec_queu
 void ovsrec_queue_set_dscp(const struct ovsrec_queue *, const int64_t *dscp, size_t n_dscp);
 void ovsrec_queue_set_external_ids(const struct ovsrec_queue *, const struct smap *);
 void ovsrec_queue_set_other_config(const struct ovsrec_queue *, const struct smap *);
+]]
 
-
+ffi.cdef[[
 /* SSL table. */
 struct ovsrec_ssl {
 	struct ovsdb_idl_row header_;
@@ -1795,27 +1981,36 @@ enum {
     OVSREC_SSL_COL_PRIVATE_KEY,
     OVSREC_SSL_N_COLUMNS
 };
+]]
 
-#define ovsrec_ssl_col_ca_cert (ovsrec_ssl_columns[OVSREC_SSL_COL_CA_CERT])
-#define ovsrec_ssl_col_private_key (ovsrec_ssl_columns[OVSREC_SSL_COL_PRIVATE_KEY])
-#define ovsrec_ssl_col_bootstrap_ca_cert (ovsrec_ssl_columns[OVSREC_SSL_COL_BOOTSTRAP_CA_CERT])
-#define ovsrec_ssl_col_external_ids (ovsrec_ssl_columns[OVSREC_SSL_COL_EXTERNAL_IDS])
-#define ovsrec_ssl_col_certificate (ovsrec_ssl_columns[OVSREC_SSL_COL_CERTIFICATE])
+---[[
+exports.ovsrec_ssl_col_ca_cert = (Lib_vswitch_idl.ovsrec_ssl_columns[ffi.C.OVSREC_SSL_COL_CA_CERT])
+exports.ovsrec_ssl_col_private_key = (Lib_vswitch_idl.ovsrec_ssl_columns[ffi.C.OVSREC_SSL_COL_PRIVATE_KEY])
+exports.ovsrec_ssl_col_bootstrap_ca_cert = (Lib_vswitch_idl.ovsrec_ssl_columns[ffi.C.OVSREC_SSL_COL_BOOTSTRAP_CA_CERT])
+exports.ovsrec_ssl_col_external_ids = (Lib_vswitch_idl.ovsrec_ssl_columns[ffi.C.OVSREC_SSL_COL_EXTERNAL_IDS])
+exports.ovsrec_ssl_col_certificate = (Lib_vswitch_idl.ovsrec_ssl_columns[ffi.C.OVSREC_SSL_COL_CERTIFICATE])
+--]]
 
+ffi.cdef[[
 extern struct ovsdb_idl_column ovsrec_ssl_columns[OVSREC_SSL_N_COLUMNS];
 
 const struct ovsrec_ssl *ovsrec_ssl_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_ssl *ovsrec_ssl_first(const struct ovsdb_idl *);
 const struct ovsrec_ssl *ovsrec_ssl_next(const struct ovsrec_ssl *);
-#define OVSREC_SSL_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_SSL_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_ssl_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_ssl_next(ROW))
-#define OVSREC_SSL_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_SSL_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_ssl_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_ssl_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_ssl_init(struct ovsrec_ssl *);
 void ovsrec_ssl_delete(const struct ovsrec_ssl *);
 struct ovsrec_ssl *ovsrec_ssl_insert(struct ovsdb_idl_txn *);
@@ -1837,8 +2032,9 @@ void ovsrec_ssl_set_ca_cert(const struct ovsrec_ssl *, const char *ca_cert);
 void ovsrec_ssl_set_certificate(const struct ovsrec_ssl *, const char *certificate);
 void ovsrec_ssl_set_external_ids(const struct ovsrec_ssl *, const struct smap *);
 void ovsrec_ssl_set_private_key(const struct ovsrec_ssl *, const char *private_key);
+]]
 
-
+ffi.cdef[[
 /* sFlow table. */
 struct ovsrec_sflow {
 	struct ovsdb_idl_row header_;
@@ -1875,28 +2071,37 @@ enum {
     OVSREC_SFLOW_COL_TARGETS,
     OVSREC_SFLOW_N_COLUMNS
 };
+]]
 
-#define ovsrec_sflow_col_agent (ovsrec_sflow_columns[OVSREC_SFLOW_COL_AGENT])
-#define ovsrec_sflow_col_sampling (ovsrec_sflow_columns[OVSREC_SFLOW_COL_SAMPLING])
-#define ovsrec_sflow_col_header (ovsrec_sflow_columns[OVSREC_SFLOW_COL_HEADER])
-#define ovsrec_sflow_col_polling (ovsrec_sflow_columns[OVSREC_SFLOW_COL_POLLING])
-#define ovsrec_sflow_col_external_ids (ovsrec_sflow_columns[OVSREC_SFLOW_COL_EXTERNAL_IDS])
-#define ovsrec_sflow_col_targets (ovsrec_sflow_columns[OVSREC_SFLOW_COL_TARGETS])
+---[[
+exports.ovsrec_sflow_col_agent = (Lib_vswitch_idl.ovsrec_sflow_columns[ffi.C.OVSREC_SFLOW_COL_AGENT])
+exports.ovsrec_sflow_col_sampling = (Lib_vswitch_idl.ovsrec_sflow_columns[ffi.C.OVSREC_SFLOW_COL_SAMPLING])
+exports.ovsrec_sflow_col_header = (Lib_vswitch_idl.ovsrec_sflow_columns[ffi.C.OVSREC_SFLOW_COL_HEADER])
+exports.ovsrec_sflow_col_polling = (Lib_vswitch_idl.ovsrec_sflow_columns[ffi.C.OVSREC_SFLOW_COL_POLLING])
+exports.ovsrec_sflow_col_external_ids = (Lib_vswitch_idl.ovsrec_sflow_columns[ffi.C.OVSREC_SFLOW_COL_EXTERNAL_IDS])
+exports.ovsrec_sflow_col_targets = (Lib_vswitch_idl.ovsrec_sflow_columns[ffi.C.OVSREC_SFLOW_COL_TARGETS])
+--]]
 
+ffi.cdef[[
 extern struct ovsdb_idl_column ovsrec_sflow_columns[OVSREC_SFLOW_N_COLUMNS];
 
 const struct ovsrec_sflow *ovsrec_sflow_get_for_uuid(const struct ovsdb_idl *, const struct uuid *);
 const struct ovsrec_sflow *ovsrec_sflow_first(const struct ovsdb_idl *);
 const struct ovsrec_sflow *ovsrec_sflow_next(const struct ovsrec_sflow *);
-#define OVSREC_SFLOW_FOR_EACH(ROW, IDL) \
+]]
+
+--[=[
+local function OVSREC_SFLOW_FOR_EACH(ROW, IDL) \
         for ((ROW) = ovsrec_sflow_first(IDL); \
              (ROW); \
              (ROW) = ovsrec_sflow_next(ROW))
-#define OVSREC_SFLOW_FOR_EACH_SAFE(ROW, NEXT, IDL) \
+local function OVSREC_SFLOW_FOR_EACH_SAFE(ROW, NEXT, IDL) \
         for ((ROW) = ovsrec_sflow_first(IDL); \
              (ROW) ? ((NEXT) = ovsrec_sflow_next(ROW), 1) : 0; \
              (ROW) = (NEXT))
+--]=]
 
+ffi.cdef[[
 void ovsrec_sflow_init(struct ovsrec_sflow *);
 void ovsrec_sflow_delete(const struct ovsrec_sflow *);
 struct ovsrec_sflow *ovsrec_sflow_insert(struct ovsdb_idl_txn *);
@@ -1921,8 +2126,9 @@ void ovsrec_sflow_set_header(const struct ovsrec_sflow *, const int64_t *header,
 void ovsrec_sflow_set_polling(const struct ovsrec_sflow *, const int64_t *polling, size_t n_polling);
 void ovsrec_sflow_set_sampling(const struct ovsrec_sflow *, const int64_t *sampling, size_t n_sampling);
 void ovsrec_sflow_set_targets(const struct ovsrec_sflow *, const char **targets, size_t n_targets);
+]]
 
-
+ffi.cdef[[
 enum {
     OVSREC_TABLE_AUTOATTACH,
     OVSREC_TABLE_BRIDGE,
@@ -1942,28 +2148,34 @@ enum {
     OVSREC_TABLE_SFLOW,
     OVSREC_N_TABLES
 };
+]]
 
-#define ovsrec_table_bridge (ovsrec_table_classes[OVSREC_TABLE_BRIDGE])
-#define ovsrec_table_qos (ovsrec_table_classes[OVSREC_TABLE_QOS])
-#define ovsrec_table_sflow (ovsrec_table_classes[OVSREC_TABLE_SFLOW])
-#define ovsrec_table_flow_sample_collector_set (ovsrec_table_classes[OVSREC_TABLE_FLOW_SAMPLE_COLLECTOR_SET])
-#define ovsrec_table_ipfix (ovsrec_table_classes[OVSREC_TABLE_IPFIX])
-#define ovsrec_table_open_vswitch (ovsrec_table_classes[OVSREC_TABLE_OPEN_VSWITCH])
-#define ovsrec_table_autoattach (ovsrec_table_classes[OVSREC_TABLE_AUTOATTACH])
-#define ovsrec_table_controller (ovsrec_table_classes[OVSREC_TABLE_CONTROLLER])
-#define ovsrec_table_flow_table (ovsrec_table_classes[OVSREC_TABLE_FLOW_TABLE])
-#define ovsrec_table_queue (ovsrec_table_classes[OVSREC_TABLE_QUEUE])
-#define ovsrec_table_ssl (ovsrec_table_classes[OVSREC_TABLE_SSL])
-#define ovsrec_table_manager (ovsrec_table_classes[OVSREC_TABLE_MANAGER])
-#define ovsrec_table_mirror (ovsrec_table_classes[OVSREC_TABLE_MIRROR])
-#define ovsrec_table_interface (ovsrec_table_classes[OVSREC_TABLE_INTERFACE])
-#define ovsrec_table_netflow (ovsrec_table_classes[OVSREC_TABLE_NETFLOW])
-#define ovsrec_table_port (ovsrec_table_classes[OVSREC_TABLE_PORT])
 
+ffi.cdef[[
 extern struct ovsdb_idl_table_class ovsrec_table_classes[OVSREC_N_TABLES];
 
 extern struct ovsdb_idl_class ovsrec_idl_class;
---]]
+]]
+
+
+exports.ovsrec_table_bridge = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_BRIDGE])
+exports.ovsrec_table_qos = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_QOS])
+exports.ovsrec_table_sflow = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_SFLOW])
+exports.ovsrec_table_flow_sample_collector_set = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_FLOW_SAMPLE_COLLECTOR_SET])
+exports.ovsrec_table_ipfix = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_IPFIX])
+exports.ovsrec_table_open_vswitch = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_OPEN_VSWITCH])
+exports.ovsrec_table_autoattach = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_AUTOATTACH])
+exports.ovsrec_table_controller = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_CONTROLLER])
+exports.ovsrec_table_flow_table = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_FLOW_TABLE])
+exports.ovsrec_table_queue = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_QUEUE])
+exports.ovsrec_table_ssl = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_SSL])
+exports.ovsrec_table_manager = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_MANAGER])
+exports.ovsrec_table_mirror = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_MIRROR])
+exports.ovsrec_table_interface = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_INTERFACE])
+exports.ovsrec_table_netflow = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_NETFLOW])
+exports.ovsrec_table_port = (Lib_vswitch_idl.ovsrec_table_classes[ffi.C.OVSREC_TABLE_PORT])
+
+
 
 ffi.cdef[[
 void ovsrec_init(void);
@@ -1971,14 +2183,12 @@ void ovsrec_init(void);
 const char * ovsrec_get_db_version(void);
 ]]
 
-local Lib_vswitch_idl = ffi.load("openvswitch")
 
-local exports = {
-	Lib_vswitch_idl = Lib_vswitch_idl;
 
-	
-}
+
+exports.ovsrec_init = Lib_vswitch_idl.ovsrec_init;
+exports.ovsrec_get_db_version = function() return ffi.string(Lib_vswitch_idl.ovsrec_get_db_version()) end;
+
+Lib_vswitch_idl.ovsrec_init();
 
 return exports
-
-
