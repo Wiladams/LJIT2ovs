@@ -19,6 +19,12 @@ void free(void *);
 ]]
 
 ffi.cdef[[
+struct _IO_FILE;
+
+typedef struct _IO_FILE FILE;
+]]
+
+ffi.cdef[[
 typedef int32_t       clockid_t;
 typedef long          time_t;
 
