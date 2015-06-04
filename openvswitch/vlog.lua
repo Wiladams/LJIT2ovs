@@ -315,6 +315,7 @@ void vlog_usage(void);
 local exports = {
     Lib_vlog = Lib_vlog;
 
+    vlog_set_levels = Lib_vlog.vlog_set_levels;
 }
 
 return exports

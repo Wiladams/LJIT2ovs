@@ -7,7 +7,8 @@ with Open vSwitch utilizing nothing more than the lua language.
 Initially, there
 are largely straight forward ffi.cdef[[]] bindings for relevant parts of libopenvswitch.so, and libovsdb.so.  The amount of ffi binding will only grow to the size necessary to use functions that are only implemented in 'C'.  Over time, some of these bindings will turn into pur lua code, where it makes better sense.
 
-*Running things
+Running things
+==============
 
 Prerequisites
 	You must have luajit (preferably 2.1) already installed on the machine.

@@ -59,20 +59,55 @@ int SSL_get_error(const void *ssl, int ret);
 void SSL_set_connect_state(void *ssl);
 void SSL_set_accept_state(void *ssl);
 
-static const int SSL_FILETYPE_PEM = 1;
-static const int SSL_ERROR_SSL = 1;
-static const int SSL_ERROR_WANT_READ = 2;
-static const int SSL_ERROR_WANT_WRITE = 3;
-static const int SSL_ERROR_SYSCALL = 5;
-static const int SSL_ERROR_ZERO_RETURN = 6;
-static const int SSL_OP_NO_COMPRESSION = 0x00020000;
-static const int SSL_MODE_RELEASE_BUFFERS = 0x00000010;
-static const int SSL_CTRL_OPTIONS = 32;
-static const int SSL_CTRL_MODE = 33;
+
 ]]
 
+
+local Lib_ssl = ffi.load("libssl"); 
 local exports = {
-	SSLLib = ffi.load("libssl"); 
+	-- Library reference
+	Lib_ssl = Lib_ssl;
+
+	-- Some constants
+	SSL_FILETYPE_PEM = 1;
+	SSL_ERROR_SSL = 1;
+	SSL_ERROR_WANT_READ = 2;
+	SSL_ERROR_WANT_WRITE = 3;
+	SSL_ERROR_SYSCALL = 5;
+	SSL_ERROR_ZERO_RETURN = 6;
+	SSL_OP_NO_COMPRESSION = 0x00020000;
+	SSL_MODE_RELEASE_BUFFERS = 0x00000010;
+	SSL_CTRL_OPTIONS = 32;
+	SSL_CTRL_MODE = 33;
+
+
+	SSL_library_init = Lib_ssl.SSL_library_init;
+
+	OPENSSL_config = Lib_ssl.OPENSSL_config;
+	OPENSSL_add_all_algorithms_noconf = Lib_ssl.OPENSSL_add_all_algorithms_noconf;
+	SSLv23_method = Lib_ssl.SSLv23_method;
+	SSL_load_error_strings = Lib_ssl.SSL_load_error_strings;
+	SSL_CTX_new = Lib_ssl.SSL_CTX_new;
+	SSL_CTX_free = Lib_ssl.SSL_CTX_free;
+	SSL_set_read_ahead = Lib_ssl.SSL_set_read_ahead;
+	SSL_CTX_ctrl = Lib_ssl.SSL_CTX_ctrl;
+	SSL_CTX_use_PrivateKey_file = Lib_ssl.SSL_CTX_use_PrivateKey_file;
+	SSL_CTX_use_certificate_file = Lib_ssl.SSL_CTX_use_certificate_file;
+	SSL_CTX_set_cipher_list = Lib_ssl.SSL_CTX_set_cipher_list;
+
+	SSL_new = Lib_ssl.SSL_new;
+	SSL_free = Lib_ssl.SSL_free;
+	SSL_set_fd = Lib_ssl.SSL_set_fd;
+	SSL_accept = Lib_ssl.SSL_accept;
+	SSL_connect = Lib_ssl.SSL_connect;
+	SSL_read = Lib_ssl.SSL_read;
+	SSL_write = Lib_ssl.SSL_write;
+	SSL_set_quiet_shutdown = Lib_ssl.SSL_set_quiet_shutdown;
+	SSL_shutdown = Lib_ssl.SSL_shutdown;
+	ERR_peek_error = Lib_ssl.ERR_peek_error;
+	SSL_get_error = Lib_ssl.SSL_get_error;
+	SSL_set_connect_state = Lib_ssl.SSL_set_connect_state;
+	SSL_set_accept_state = Lib_ssl.SSL_set_accept_state;
 }
 
 return exports;

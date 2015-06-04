@@ -181,8 +181,9 @@ local function cmd_show_row(struct vsctl_context *ctx, const struct ovsdb_idl_ro
     show.recurse = false;
 end
 
-local function cmd_show(struct vsctl_context *ctx)
 
+
+local function cmd_show(struct vsctl_context *ctx)
     local row = ovsdb_idl_first_row(ctx.idl, cmd_show_tables[1].table);
     while (row ~= nil) do
         cmd_show_row(ctx, row, 0);
@@ -190,7 +191,101 @@ local function cmd_show(struct vsctl_context *ctx)
     end
 end
 
+local commands = {
+    show = {
+        name = "show", 
+        min_args = 0, 
+        max_args = 0, 
+        arguments = "", 
+        prerequisites = pre_cmd_show, 
+        run = cmd_show, 
+        postprocess = nil, 
+        options = "", 
+        mode = ffi.C.RO
+    };
+}
+
+local function mini_main()
+    local cmd = {
+        syntax = commands.show;
+        argc = #arg - 1;
+        argv = arg;
+        options = {};
+
+        -- Data modified by commands. */
+        output = dynamic_string();
+        --struct table *table;
+    };
+end
+
+ffi.cdef[[
+    extern struct vlog_module VLM_reconnect;
+]]
+
 local function main()
+
+    struct ovsdb_idl *idl;
+    struct vsctl_command *commands;
+    struct shash local_options;
+    unsigned int seqno;
+    size_t n_commands;
+    char *args;
+
+    --set_program_name(argv[0]);
+    --fatal_ignore_sigpipe();
+    vlog_set_levels(nil, ffi.C.VLF_CONSOLE, ffi.C.VLL_WARN);
+    --vlog_set_levels(&VLM_reconnect, ffi.C.VLF_ANY_DESTINATION, ffi.C.VLL_WARN);
+    ovsrec_init();
+
+    -- Log our arguments.  This is often valuable for debugging systems. */
+    --args = process_escape_args(argv);
+    --VLOG(might_write_to_db(argv) ? VLL_INFO : VLL_DBG, "Called as %s", args);
+
+    /* Parse command line. */
+    shash_init(&local_options);
+    parse_options(argc, argv, &local_options);
+    commands = parse_commands(argc - optind, argv + optind, &local_options,
+                              &n_commands);
+
+    --if (timeout) {
+    --    time_alarm(timeout);
+    --}
+
+    /* Initialize IDL. */
+    local idl = ovsdb_idl_create(db, &ovsrec_idl_class, false, retry);
+    the_idl = idl;
+
+    run_prerequisites(commands, n_commands, idl);
+
+--[[
+    /* Execute the commands.
+     *
+     * 'seqno' is the database sequence number for which we last tried to
+     * execute our transaction.  There's no point in trying to commit more than
+     * once for any given sequence number, because if the transaction fails
+     * it's because the database changed and we need to obtain an up-to-date
+     * view of the database before we try the transaction again. */
+--]]
+    local seqno = ovsdb_idl_get_seqno(idl);
+    while (true) do
+        ovsdb_idl_run(idl);
+        if (ovsdb_idl_is_alive(idl) == 0) then
+            int retval = ovsdb_idl_get_last_error(idl);
+            vsctl_fatal("%s: database connection failed (%s)",
+                        db, ovs_retval_to_string(retval));
+        end
+
+        if (seqno ~= ovsdb_idl_get_seqno(idl)) then
+            seqno = ovsdb_idl_get_seqno(idl);
+            do_vsctl(args, commands, n_commands, idl);
+        end
+
+        if (seqno == ovsdb_idl_get_seqno(idl)) then
+            ovsdb_idl_wait(idl);
+            poll_block();
+        end
+    end
+
 end
 
 main();
