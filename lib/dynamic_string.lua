@@ -82,6 +82,7 @@ local exports = {
     Lib_dynamic_string = Lib_dynamic_string;
 
     -- inline functions
+    dynamic_string = dynamic_string;
     ds_put_char = ds_put_char;
 
     ds_init = Lib_dynamic_string.ds_init;
@@ -107,7 +108,7 @@ local exports = {
     ds_put_strftime_msec = Lib_dynamic_string.ds_put_strftime_msec;
     xastrftime_msec = Lib_dynamic_string.xastrftime_msec;
     
-    ds_cstr = Lib_dynamic_string.ds_cstr;
+    ds_cstr = function(ds ) return ffi.string(Lib_dynamic_string.ds_cstr(ds)) end;
     ds_cstr_ro = Lib_dynamic_string.ds_cstr_ro;
     ds_steal_cstr = Lib_dynamic_string.ds_steal_cstr;
     
@@ -116,3 +117,5 @@ local exports = {
     ds_last = Lib_dynamic_string.ds_last;
     ds_chomp = Lib_dynamic_string.ds_chomp;
 }
+
+return exports

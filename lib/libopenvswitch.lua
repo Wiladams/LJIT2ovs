@@ -29,6 +29,7 @@ end
 
 import(exports, "lib.command_line")
 import(exports, "lib.dirs")
+import(exports, "lib.dynamic_string")
 import(exports, "lib.hmap")
 import(exports, "lib.json")
 import(exports, "lib.jsonrpc")
