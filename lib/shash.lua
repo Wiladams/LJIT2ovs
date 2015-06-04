@@ -6,7 +6,6 @@ require("lib.hmap")
 local exports = {}
 
 
-
 ffi.cdef[[
 struct shash_node {
     struct hmap_node node;
@@ -57,4 +56,37 @@ bool shash_equal_keys(const struct shash *, const struct shash *);
 struct shash_node *shash_random_node(struct shash *);
 ]]
 
+local Lib_shash = ffi.load("openvswitch")
 
+local exports = {
+	Lib_shash = Lib_shash;
+
+	shash_init = Lib_shash.shash_init;
+	shash_destroy = Lib_shash.shash_destroy;
+	shash_destroy_free_data = Lib_shash.shash_destroy_free_data;
+	shash_swap = Lib_shash.shash_swap;
+	shash_moved = Lib_shash.shash_moved;
+	shash_clear = Lib_shash.shash_clear;
+	shash_clear_free_data = Lib_shash.shash_clear_free_data;
+	shash_is_empty = Lib_shash.shash_is_empty;
+	shash_count = Lib_shash.shash_count;
+	shash_add = Lib_shash.shash_add;
+	shash_add_nocopy = Lib_shash.shash_add_nocopy;
+	shash_add_once = Lib_shash.shash_add_once;
+	shash_add_assert = Lib_shash.shash_add_assert;
+	shash_replace = Lib_shash.shash_replace;
+	shash_delete = Lib_shash.shash_delete;
+	shash_steal = Lib_shash.shash_steal;
+	shash_find = Lib_shash.shash_find;
+	shash_find_len = Lib_shash.shash_find_len;
+	shash_find_data = Lib_shash.shash_find_data;
+	shash_find_and_delete = Lib_shash.shash_find_and_delete;
+	shash_find_and_delete_assert = Lib_shash.shash_find_and_delete_assert;
+	shash_first = Lib_shash.shash_first;
+	shash_sort = Lib_shash.shash_sort;
+	shash_equal_keys = Lib_shash.shash_equal_keys;
+	shash_random_node = Lib_shash.shash_random_node;
+
+}
+
+return exports;

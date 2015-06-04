@@ -38,6 +38,9 @@ local function check_ovsdb_error(err)
 end
 
 return {
+    Lib_ovsdb = libovsdb;
+    Lib_ovs = libovs;
+    
     default_db = default_db;
     default_schema = default_schema;
     check_ovsdb_error = check_ovsdb_error;

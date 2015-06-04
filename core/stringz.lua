@@ -83,8 +83,6 @@ local function strlcpy(dst, src, size)
 	local dstptr = ffi.cast("char *", dst)
 	local srcptr = ffi.cast("const char *", src)
 
-	--local len = strlen(src)
-	--len = math.min(size-1,len)
 	local len = size;
 
 	ffi.copy(dstptr, srcptr, len)
@@ -96,7 +94,7 @@ end
 local function strndup(str,n)
 --print("strndup: ", str, n);
 
-	local newstr = ffi.C.malloc(n+1);
+	local newstr = ffi.cast("char *", ffi.gc(ffi.C.malloc(n+1), ffi.C.free));
 	strlcpy(newstr, str, n);
 
 	return newstr
