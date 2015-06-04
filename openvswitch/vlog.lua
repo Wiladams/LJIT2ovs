@@ -23,6 +23,7 @@ local ovs_list = require("ovs.openvswitch.ovs_list")
 #include <openvswitch/token-bucket.h>
 #include <openvswitch/util.h>
 --]]
+require("openvswitch.util")
 
 --[[
 /* Logging severity levels.
@@ -268,15 +269,16 @@ ffi.cdef[[
 void vlog_usage(void);
 ]]
 
+
+-- Implementation details.
+local function VLOG(LEVEL, ...)
+    local level__ = LEVEL;                
+    if (THIS_MODULE.min_level >= level__) then        
+        Lib_vlog.vlog(THIS_MODULE, level__, ...);    
+    end                                               
+end
+
 --[[
-/* Implementation details. */
-#define VLOG(LEVEL, ...)                                \
-    do {                                                \
-        enum vlog_level level__ = LEVEL;                \
-        if (THIS_MODULE->min_level >= level__) {        \
-            vlog(THIS_MODULE, level__, __VA_ARGS__);    \
-        }                                               \
-    } while (0)
 #define VLOG_RL(RL, LEVEL, ...)                                     \
     do {                                                            \
         enum vlog_level level__ = LEVEL;                            \
@@ -316,6 +318,7 @@ local exports = {
     Lib_vlog = Lib_vlog;
 
     vlog_set_levels = Lib_vlog.vlog_set_levels;
+    vlog_usage = Lib_vlog.vlog_usage;
 }
 
 return exports

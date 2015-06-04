@@ -1,8 +1,15 @@
+--[[
+    This is a relatively simple test case to see if we can
+    instantiate an in memory database (idl), and read the
+    tables.  It is roughly the equivalent of ovs-vsctl show
+
+    Assumes a database server is already running on the 
+    machine.
+--]]
+
 local ffi = require("ffi")
 
 common = require("testy.ovsdb_command_common")
-
-
 
 local stringz = require("core.stringz")
 
