@@ -2,7 +2,7 @@ local ffi = require("ffi")
 local bit = require("bit")
 local band, bor, rshift = bit.band, bit.bor, bit.rshift;
 
-local bitutils = require("bitutils")
+local bitutils = require("core.bitutils")
 
 --[[
 #include <arpa/inet.h>

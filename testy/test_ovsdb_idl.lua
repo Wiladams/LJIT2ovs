@@ -17,6 +17,8 @@ local stringz = require("core.stringz")
 
 local db = common.default_db();
 local idl = nil;
+local wait_for_reload = true;
+
 
 local cmd_show_tables = {
     {
@@ -85,13 +87,20 @@ local function pre_cmd_show()
 
         local  i=0;
 
+        -- first add the table to be watched
         ovsdb_idl_add_table(idl, show.table);
+        print("add_table: ", ffi.string(show.table.name));
+
+        -- add the column
         if (show.name_column ~= nil) then
+            print("add_column, name_column: ", ffi.string(show.name_column.name));
             ovsdb_idl_add_column(idl, show.name_column);
         end
 
         for _, column in ipairs(show.columns) do
+            print(" ",ffi.string(column.name))
             ovsdb_idl_add_column(idl, column);
+            --print("LAST ERROR, add_column: ", ovsdb_idl_get_last_error(idl));
         end
     end
 end
@@ -127,14 +136,25 @@ local function prolog()
 	--	print("do not have idl_class")
 	--	return 
 	--end
-
-	idl = ovsdb_idl_create(db,ovsrec_idl_class,monitor_everything,retry);	
+    --common.Lib_ovs.Lib_openvswitch.ovsrec_idl_class 
+    --print("ovsrec_idl_class: ", ovsrec_idl_class);
+	
+    idl = ovsdb_idl_create(db,ovsrec_idl_class,monitor_everything,retry);	
 	--print("idl: ", idl);
 
 	if not idl == nil then
 		print("idl_create() failed...")
 		return ;
 	end
+
+    ovsdb_idl_add_table(idl, ovsrec_table_open_vswitch);
+    local retval = ovsdb_idl_get_last_error(idl);
+    print("LAST ERROR, add_table: ", retval);
+
+    if wait_for_reload then
+        ovsdb_idl_add_column(idl, ovsrec_open_vswitch_col_cur_cfg);
+        print("LAST ERROR, add_column: ", ovsdb_idl_get_last_error(idl));
+    end
 
 	return true;
 end
@@ -146,6 +166,9 @@ end
 
 
 
+local function vsctl_fatal(format, ...)
+    error(string.format(format,...))
+end
 
 local function main()
 	print("==== main ====")
@@ -155,7 +178,30 @@ local function main()
 	end
 
 	pre_cmd_show()
-	cmd_show();
+
+
+    local seqno = ovsdb_idl_get_seqno(idl);
+    while (true) do
+        ovsdb_idl_run(idl);
+        if (ovsdb_idl_is_alive(idl) == 0) then
+            local retval = ovsdb_idl_get_last_error(idl);
+            vsctl_fatal("%s: database connection failed (%s)",
+                        db, ovs_retval_to_string(retval));
+        end
+
+        if (seqno ~= ovsdb_idl_get_seqno(idl)) then
+            seqno = ovsdb_idl_get_seqno(idl);
+            cmd_show();
+            --do_vsctl(args, commands, n_commands, idl);
+        end
+
+        if (seqno == ovsdb_idl_get_seqno(idl)) then
+            ovsdb_idl_wait(idl);
+            poll_block();
+        end
+    end
+
+	--cmd_show();
 end
 
 main()
