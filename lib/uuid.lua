@@ -70,6 +70,65 @@ bool uuid_from_string_prefix(struct uuid *, const char *);
 
 local Lib_uuid = ffi.load("openvswitch")
 
+--[[
+    Classes
+--]]
+local uuid = ffi.typeof("struct uuid")
+local uuid_mt = {
+    __new = function(ct, ...)
+        local obj = ffi.new(ct);
+        if select('#',...) == 1 then
+            local initvalue = select(1, ...);
+            if type(initvalue) == "string" then
+                Lib_uuid.uuid_from_string_prefix(obj, initvalue);
+            end
+        elseif select("#",...) == 0 then
+            Lib_uuid.uuid_generate(obj);
+        end
+
+        return obj;
+    end,
+
+    __index = {
+        components = function(self)
+            return tonumber(ffi.cast("unsigned int", (self.parts[0]))),
+                    tonumber(ffi.cast("unsigned int", rshift(self.parts[1], 16))),
+                    tonumber(ffi.cast("unsigned int", band(self.parts[1], 0xffff))),
+                    tonumber(ffi.cast("unsigned int", rshift(self.parts[2], 16))),
+                    tonumber(ffi.cast("unsigned int", band(self.parts[2], 0xffff))),
+                    tonumber(ffi.cast("unsigned int", self.parts[3]));
+        end,
+
+        compare = function(self, other)
+            return Lib_uuid.uuid_compare_3way(self, other);
+        end,
+
+        hash = function(self)
+            return self.parts[0];        
+        end,
+
+        isZero = function(self)
+            return Lib_uuid.uuid_is_zero(self);
+        end,
+
+        zero = function(self)
+            return Lib_uuid.uuid_zero();
+        end,
+    },
+
+    __eq = function(a, b)
+        return (a.parts[0] == b.parts[0]
+            and a.parts[1] == b.parts[1]
+            and a.parts[2] == b.parts[2]
+            and a.parts[3] == b.parts[3]);
+    end,
+
+    __tostring = function(self)
+        return string.format(UUID_FMT, self:components());
+    end,
+}
+ffi.metatype(uuid, uuid_mt);
+
 -- initialize uuid routines
 Lib_uuid.uuid_init();
 
@@ -81,10 +140,14 @@ local exports = {
     UUID_FMT = UUID_FMT;
     UUID_ARGS = UUID_ARGS;
 
+    -- metatypes
+    uuid = uuid;
+
     -- inline routines
     uuid_hash = uuid_hash;
     uuid_equals = uuid_equals;
 
+    -- library functions
     uuid_init = Lib_uuid.uuid_init;
     uuid_generate = Lib_uuid.uuid_generate;
     uuid_zero = Lib_uuid.uuid_zero;
@@ -92,6 +155,8 @@ local exports = {
     uuid_compare_3way = Lib_uuid.uuid_compare_3way;
     uuid_from_string = Lib_uuid.uuid_from_string;
     uuid_from_string_prefix = Lib_uuid.uuid_from_string_prefix;
+
+
 }
 
 return exports
