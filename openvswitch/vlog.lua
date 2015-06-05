@@ -3,26 +3,15 @@ local ffi = require("ffi")
 
 local Lib_vlog = ffi.load("openvswitch")
 
-local ovs_list = require("ovs.openvswitch.ovs_list")
 
 --[[
-/* Logging.
- *
- *
- * Thread-safety
- * =============
- *
- * Fully thread safe.
- */
-
-
 #include <time.h>
 #include <openvswitch/compiler.h>
-#include <openvswitch/list.h>
-#include <openvswitch/thread.h>
-#include <openvswitch/token-bucket.h>
-#include <openvswitch/util.h>
 --]]
+
+local ovs_list = require("openvswitch.ovs_list")
+require("openvswitch.thread")
+require("openvswitch.token_bucket")
 require("openvswitch.util")
 
 --[[
@@ -142,7 +131,7 @@ enum vlog_level vlog_get_level(const struct vlog_module *,
                                enum vlog_destination);
 void vlog_set_levels(struct vlog_module *,
                      enum vlog_destination, enum vlog_level);
-char *vlog_set_levels_from_string(const char *) OVS_WARN_UNUSED_RESULT;
+char *vlog_set_levels_from_string(const char *);
 void vlog_set_levels_from_string_assert(const char *);
 char *vlog_get_levels(void);
 bool vlog_is_enabled(const struct vlog_module *, enum vlog_level);
@@ -175,12 +164,12 @@ void vlog(const struct vlog_module *, enum vlog_level, const char *format, ...);
 void vlog_valist(const struct vlog_module *, enum vlog_level,
                  const char *, va_list);
 
-OVS_NO_RETURN void vlog_fatal(const struct vlog_module *, const char *format, ...);
-OVS_NO_RETURN void vlog_fatal_valist(const struct vlog_module *,
+ void vlog_fatal(const struct vlog_module *, const char *format, ...);
+ void vlog_fatal_valist(const struct vlog_module *,
                                  const char *format, va_list);
 
-OVS_NO_RETURN void vlog_abort(const struct vlog_module *, const char *format, ...);
-OVS_NO_RETURN void vlog_abort_valist(const struct vlog_module *,
+ void vlog_abort(const struct vlog_module *, const char *format, ...);
+ void vlog_abort_valist(const struct vlog_module *,
                                  const char *format, va_list);
 
 void vlog_rate_limit(const struct vlog_module *, enum vlog_level,
@@ -314,9 +303,18 @@ end
         };
 --]]
 
+ffi.cdef[[
+    extern struct vlog_module VLM_reconnect;
+]]
+
+
 local exports = {
     Lib_vlog = Lib_vlog;
 
+    -- defined externals 
+    VLM_reconnect = Lib_vlog.VLM_reconnect;
+
+    -- library functions
     vlog_set_levels = Lib_vlog.vlog_set_levels;
     vlog_usage = Lib_vlog.vlog_usage;
 }

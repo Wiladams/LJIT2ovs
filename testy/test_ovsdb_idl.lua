@@ -13,9 +13,6 @@ common = require("testy.ovsdb_command_common")
 
 local stringz = require("core.stringz")
 
-
-
-local db = common.default_db();
 local idl = nil;
 local wait_for_reload = true;
 
@@ -89,16 +86,16 @@ local function pre_cmd_show()
 
         -- first add the table to be watched
         ovsdb_idl_add_table(idl, show.table);
-        print("add_table: ", ffi.string(show.table.name));
+        --print("add_table: ", ffi.string(show.table.name));
 
         -- add the column
         if (show.name_column ~= nil) then
-            print("add_column, name_column: ", ffi.string(show.name_column.name));
+            --print("add_column, name_column: ", ffi.string(show.name_column.name));
             ovsdb_idl_add_column(idl, show.name_column);
         end
 
         for _, column in ipairs(show.columns) do
-            print(" ",ffi.string(column.name))
+            --print(" ",ffi.string(column.name))
             ovsdb_idl_add_column(idl, column);
             --print("LAST ERROR, add_column: ", ovsdb_idl_get_last_error(idl));
         end
@@ -122,25 +119,9 @@ local function prolog()
 	-- create an in-memory instance
 	local retry = true;
 	local monitor_everything = false;
-
-	--print("Lib_ovs: ", common.Lib_ovs);
-
-	--local success, controller_columns = pcall(function() return common.Lib_ovs.Lib_openvswitch["ovsrec_controller_columns"] end);
-	--print("controller_columns: ", success, controller_columns);
-
-	--local success, idl_class = pcall(function() return common.Lib_ovs.Lib_openvswitch.ovsrec_idl_class end);
-	--print("ovsrec_idl: ", success, idl_class)
-
-
-	--if not success then 
-	--	print("do not have idl_class")
-	--	return 
-	--end
-    --common.Lib_ovs.Lib_openvswitch.ovsrec_idl_class 
-    --print("ovsrec_idl_class: ", ovsrec_idl_class);
+    local db = common.default_db();
 	
     idl = ovsdb_idl_create(db,ovsrec_idl_class,monitor_everything,retry);	
-	--print("idl: ", idl);
 
 	if not idl == nil then
 		print("idl_create() failed...")
@@ -148,12 +129,12 @@ local function prolog()
 	end
 
     ovsdb_idl_add_table(idl, ovsrec_table_open_vswitch);
-    local retval = ovsdb_idl_get_last_error(idl);
-    print("LAST ERROR, add_table: ", retval);
+    --local retval = ovsdb_idl_get_last_error(idl);
+    --print("LAST ERROR, add_table: ", retval);
 
     if wait_for_reload then
         ovsdb_idl_add_column(idl, ovsrec_open_vswitch_col_cur_cfg);
-        print("LAST ERROR, add_column: ", ovsdb_idl_get_last_error(idl));
+        --print("LAST ERROR, add_column: ", ovsdb_idl_get_last_error(idl));
     end
 
 	return true;
@@ -169,6 +150,15 @@ end
 local function vsctl_fatal(format, ...)
     error(string.format(format,...))
 end
+
+ffi.cdef[[
+    extern struct vlog_module VLM_reconnect;
+]]
+local libovs = ffi.load("openvswitch")
+VLM_reconnect = libovs.VLM_reconnect;
+--print("VLM_reconnect: ", VLM_reconnect)
+
+
 
 local function main()
 	print("==== main ====")
@@ -200,8 +190,6 @@ local function main()
             poll_block();
         end
     end
-
-	--cmd_show();
 end
 
 main()

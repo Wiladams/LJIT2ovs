@@ -9,9 +9,8 @@ libovsdb();   -- make things global
 local def_db = nil;
 
 local function default_db()
-
     if (def_db == nil) then
-        def_db = string.format("%s/conf.db", ffi.string(ovs_dbdir()));
+        def_db = string.format("unix:%s/db.sock", ovs_rundir());
     end
 
     return def_db;

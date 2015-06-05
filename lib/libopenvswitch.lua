@@ -45,6 +45,9 @@ import(exports, "lib.table")
 import(exports, "lib.unixctl")
 import(exports, "lib.util")
 import(exports, "lib.uuid")
+import(exports, "openvswitch.thread")
+import(exports, "openvswitch.token_bucket")
+import(exports, "openvswitch.vlog")
 import(exports, "lib.vswitch_idl")
 
 

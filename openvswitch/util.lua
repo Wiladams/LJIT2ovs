@@ -1,6 +1,6 @@
 local ffi = require("ffi")
 
-#include <openvswitch/version.h>
+--#include <openvswitch/version.h>
 
 local Lib_openvswitch_util = ffi.load("openvswitch")
 
