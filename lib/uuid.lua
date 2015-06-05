@@ -3,11 +3,6 @@ local bit = require("bit")
 
 local rshift, band = bit.rshift, bit.band
 
-
---#include "util.h"
-
-
-
 local function BUILD_ASSERT_DECL(...)
     assert(...);
 end
@@ -29,26 +24,17 @@ struct uuid {
 
 BUILD_ASSERT_DECL(ffi.sizeof("struct uuid") == UUID_OCTET);
 
---[[
-/* Formats a UUID as a string, in the conventional format.
- *
- * Example:
- *   struct uuid uuid = ...;
- *   printf("This UUID is "UUID_FMT"\n", UUID_ARGS(&uuid));
- *
- */
---]]
 
 local UUID_LEN = 36;
 local UUID_FMT = "%08x-%04x-%04x-%04x-%04x%08x";
 
 local function UUID_ARGS(UUID)                             
-    return (((UUID).parts[0])),            
-    (rshift(UUID.parts[1], 16)),      
-    (band(UUID.parts[1], 0xffff)),   
-    (rshift(UUID.parts[2], 16)),      
-    (band(UUID.parts[2], 0xffff)),   
-    ((UUID.parts[3]))
+    return ffi.cast("unsigned int", (UUID.parts[0])),
+        ffi.cast("unsigned int", rshift(UUID.parts[1], 16)),
+        ffi.cast("unsigned int", band(UUID.parts[1], 0xffff)),
+        ffi.cast("unsigned int", rshift(UUID.parts[2], 16)),
+        ffi.cast("unsigned int", band(UUID.parts[2], 0xffff)),
+        ffi.cast("unsigned int", UUID.parts[3])
 end
 
 
@@ -82,23 +68,30 @@ bool uuid_from_string(struct uuid *, const char *);
 bool uuid_from_string_prefix(struct uuid *, const char *);
 ]]
 
-local uuidlib = ffi.load("openvswitch")
+local Lib_uuid = ffi.load("openvswitch")
 
 -- initialize uuid routines
-uuidlib.uuid_init();
+Lib_uuid.uuid_init();
 
 local exports = {
-    Lib_uuid = uuidlib;
+    Lib_uuid = Lib_uuid;
 
+    UUID_BIT = UUID_BIT;
+    UUID_OCTET = UUID_OCTET;
     UUID_FMT = UUID_FMT;
+    UUID_ARGS = UUID_ARGS;
 
-    uuid_init = uuidlib.uuid_init;
-    uuid_generate = uuidlib.uuid_generate;
-    uuid_zero = uuidlib.uuid_zero;
-    uuid_is_zero = uuidlib.uuid_is_zero;
-    uuid_compare_3way = uuidlib.uuid_compare_3way;
-    uuid_from_string = uuidlib.uuid_from_string;
-    uuid_from_string_prefix = uuidlib.uuid_from_string_prefix;
+    -- inline routines
+    uuid_hash = uuid_hash;
+    uuid_equals = uuid_equals;
+
+    uuid_init = Lib_uuid.uuid_init;
+    uuid_generate = Lib_uuid.uuid_generate;
+    uuid_zero = Lib_uuid.uuid_zero;
+    uuid_is_zero = Lib_uuid.uuid_is_zero;
+    uuid_compare_3way = Lib_uuid.uuid_compare_3way;
+    uuid_from_string = Lib_uuid.uuid_from_string;
+    uuid_from_string_prefix = Lib_uuid.uuid_from_string_prefix;
 }
 
 return exports

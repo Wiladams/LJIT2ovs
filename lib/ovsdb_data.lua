@@ -274,6 +274,9 @@ local exports = {
   ovsdb_datum_conforms_to_type = ovsdb_datum_conforms_to_type;
 
   -- shared library functions
+  ovsdb_datum_is_default = Lib_ovsdb_data.ovsdb_datum_is_default;
+  ovsdb_datum_to_string = Lib_ovsdb_data.ovsdb_datum_to_string;
+
   ovsdb_symbol_table_create = Lib_ovsdb_data.ovsdb_symbol_table_create;
   ovsdb_symbol_table_destroy = Lib_ovsdb_data.ovsdb_symbol_table_destroy;
   ovsdb_symbol_table_get = Lib_ovsdb_data.ovsdb_symbol_table_get;

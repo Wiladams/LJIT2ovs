@@ -15,6 +15,7 @@ local stringz = require("core.stringz")
 
 local idl = nil;
 local wait_for_reload = true;
+--VLOG_DEFINE_THIS_MODULE(vsctl);
 
 
 local cmd_show_tables = {
@@ -82,11 +83,11 @@ local function pre_cmd_show()
 	print("==== pre_cmd_show ====")
     for idx, show in ipairs(cmd_show_tables) do
 
-        local  i=0;
+        --local  i=0;
 
         -- first add the table to be watched
         ovsdb_idl_add_table(idl, show.table);
-        --print("add_table: ", ffi.string(show.table.name));
+        print("add_table: ", ffi.string(show.table.name));
 
         -- add the column
         if (show.name_column ~= nil) then
@@ -100,16 +101,91 @@ local function pre_cmd_show()
             --print("LAST ERROR, add_column: ", ovsdb_idl_get_last_error(idl));
         end
     end
+    print("---- pre_cmd_show - END ----")
 end
 
-local function cmd_show()
+local function cmd_show_find_table_by_row(row)
+
+    for _, show in ipairs(cmd_show_tables) do
+        if (show.table == row.table.class) then
+            return show;
+        end
+    end
+
+    return nil;
+end
+
+
+local function cmd_show_row(ctx, row, level)
+    print("==== cmd_show_row: ", row)
+    local show = cmd_show_find_table_by_row(row);
+
+    ds_put_char_multiple(ctx.output, string.byte(' '), level * 4);
+    if (show and show.name_column) then
+        ds_put_format(ctx.output, "%s ", ffi.string(show.table.name));
+        local datum = ovsdb_idl_read(row, show.name_column);
+        ovsdb_datum_to_string(datum, show.name_column.type, ctx.output);
+    else 
+        ds_put_format(ctx.output, UUID_FMT, UUID_ARGS(row.uuid));
+    end
+    
+    ds_put_char(ctx.output, string.byte('\n'));
+
+    if (not show or show.recurse) then
+        return;
+    end
+
+    show.recurse = true;
+
+    for _, column in ipairs(show.columns) do
+        print("COLUMN: ", ffi.string(column.name));
+        local datum = ovsdb_idl_read(row, column);
+        print("  DATUM: ", datum, datum.n);
+
+        if (column.type.key.type == OVSDB_TYPE_UUID and
+            column.type.key.u.uuid.refTableName ~= nil) then
+            print("    OVSDB_TYPE_UUID")
+            local ref_show = cmd_show_find_table_by_name(
+                column.type.key.u.uuid.refTableName);
+            if (ref_show ~= nil) then
+                for j = 0, datum.n-1 do
+                    local ref_row = ovsdb_idl_get_row_for_uuid(ctx.idl,
+                                                         ref_show.table,
+                                                         datum.keys[j].uuid);
+                    if (ref_row ~= nil) then
+                        cmd_show_row(ctx, ref_row, level + 1);
+                    end
+                end
+                --continue;
+            end
+        end
+
+        local isdefault = ovsdb_datum_is_default(datum, column.type);
+        print("  DEFAULT: ", isdefault)
+        if (not isdefault) then
+            print("NOT DEFAULT DATA")
+            ds_put_char_multiple(ctx.output, string.byte(' '), (level + 1) * 4);
+            ds_put_format(ctx.output, "%s: ", column.name);
+            ovsdb_datum_to_string(datum, column.type, ctx.output);
+            ds_put_char(ctx.output, string.byte('\n'));
+        end
+
+    end
+    print("---- cmd_show_row() - END");
+    print(ds_cstr(ctx.output));
+
+    show.recurse = false;
+end
+
+
+local function cmd_show(ctx)
 	print("==== cmd_show ====")
     local row = ovsdb_idl_first_row(idl, cmd_show_tables[1].table);
     print("FIRST ROW: ", row);
     
     while (row ~= nil) do
     	print("ROW: ", row)
-        --cmd_show_row(ctx, row, 0);
+        cmd_show_row(ctx, row, 0);
         row = ovsdb_idl_next_row(row)
     end
 end
@@ -117,10 +193,14 @@ end
 
 local function prolog()
 	-- create an in-memory instance
-	local retry = true;
+	local retry = false;
 	local monitor_everything = false;
     local db = common.default_db();
-	
+	--local db = "foobar"
+
+    vlog_set_levels(nil, ffi.C.VLF_CONSOLE, ffi.C.VLL_WARN);
+    vlog_set_levels(VLM_reconnect, ffi.C.VLF_ANY_DESTINATION, ffi.C.VLL_WARN);
+
     idl = ovsdb_idl_create(db,ovsrec_idl_class,monitor_everything,retry);	
 
 	if not idl == nil then
@@ -137,7 +217,11 @@ local function prolog()
         --print("LAST ERROR, add_column: ", ovsdb_idl_get_last_error(idl));
     end
 
-	return true;
+    return {
+        idl = idl;
+        output = dynamic_string();
+        --struct table *table;
+    }
 end
 
 local function epilog()
@@ -151,42 +235,38 @@ local function vsctl_fatal(format, ...)
     error(string.format(format,...))
 end
 
-ffi.cdef[[
-    extern struct vlog_module VLM_reconnect;
-]]
-local libovs = ffi.load("openvswitch")
-VLM_reconnect = libovs.VLM_reconnect;
---print("VLM_reconnect: ", VLM_reconnect)
 
 
 
 local function main()
 	print("==== main ====")
-	if not prolog() then
+	local ctx = prolog();
+
+    if not prolog then
 		print("prolog failed: ")
 		return ;
 	end
 
-	pre_cmd_show()
+	pre_cmd_show(ctx)
 
 
-    local seqno = ovsdb_idl_get_seqno(idl);
+    local seqno = ovsdb_idl_get_seqno(ctx.idl);
     while (true) do
-        ovsdb_idl_run(idl);
-        if (ovsdb_idl_is_alive(idl) == 0) then
-            local retval = ovsdb_idl_get_last_error(idl);
+        ovsdb_idl_run(ctx.idl);
+        if (ovsdb_idl_is_alive(ctx.idl) == 0) then
+            local retval = ovsdb_idl_get_last_error(ctx.idl);
             vsctl_fatal("%s: database connection failed (%s)",
                         db, ovs_retval_to_string(retval));
         end
 
-        if (seqno ~= ovsdb_idl_get_seqno(idl)) then
-            seqno = ovsdb_idl_get_seqno(idl);
-            cmd_show();
+        if (seqno ~= ovsdb_idl_get_seqno(ctx.idl)) then
+            seqno = ovsdb_idl_get_seqno(ctx.idl);
+            cmd_show(ctx);
             --do_vsctl(args, commands, n_commands, idl);
         end
 
-        if (seqno == ovsdb_idl_get_seqno(idl)) then
-            ovsdb_idl_wait(idl);
+        if (seqno == ovsdb_idl_get_seqno(ctx.idl)) then
+            ovsdb_idl_wait(ctx.idl);
             poll_block();
         end
     end
