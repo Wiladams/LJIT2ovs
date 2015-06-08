@@ -38,7 +38,24 @@ const char *ovsdb_error_get_tag(const struct ovsdb_error *);
 void ovsdb_error_assert(struct ovsdb_error *);
 ]]
 
+
+
 local Lib_ovsdb_error = ffi.load("openvswitch")
+
+local function ovsdb_error_to_string(err)
+    if err == nil then
+        return "";
+    end
+
+    local s = Lib_ovsdb_error.ovsdb_error_to_string(err);
+    if s == nil then 
+        return "";
+    end
+    local errstr = ffi.string(s);
+    ffi.C.free(s);
+
+    return errstr;
+end
 
 local exports = {
     Lib_ovsdb_error = Lib_ovsdb_error;
@@ -50,7 +67,7 @@ local exports = {
     ovsdb_internal_error = Lib_ovsdb_error.ovsdb_internal_error;
     ovsdb_error_destroy = Lib_ovsdb_error.ovsdb_error_destroy;
     ovsdb_error_clone = Lib_ovsdb_error.ovsdb_error_clone;
-    ovsdb_error_to_string = Lib_ovsdb_error.ovsdb_error_to_string;
+    ovsdb_error_to_string = ovsdb_error_to_string;
     ovsdb_error_to_json = Lib_ovsdb_error.ovsdb_error_to_json;
     ovsdb_error_get_tag = Lib_ovsdb_error.ovsdb_error_get_tag;
     ovsdb_error_assert = Lib_ovsdb_error.ovsdb_error_assert;

@@ -1,6 +1,6 @@
 #!/usr/local/bin/luajit
 
-package.path = package.path..";../?.lua;../core/?.lua;"
+package.path = package.path..";../?.lua;./core/?.lua;"
 
 local Kernel = require("core.kernel")
 Kernel:globalize();

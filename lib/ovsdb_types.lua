@@ -177,39 +177,48 @@ ovsdb_base_type_is_weak_ref(const struct ovsdb_base_type *base)
     return (ovsdb_base_type_is_ref(base)
             && base->u.uuid.refType == OVSDB_REF_WEAK);
 }
-
-static inline bool ovsdb_type_is_scalar(const struct ovsdb_type *type)
-{
-    return (type->value.type == OVSDB_TYPE_VOID
-            && type->n_min == 1 && type->n_max == 1);
-}
-
-static inline bool ovsdb_type_is_optional(const struct ovsdb_type *type)
-{
-    return type->n_min == 0;
-}
-
-static inline bool ovsdb_type_is_optional_scalar(
-    const struct ovsdb_type *type)
-{
-    return (type->value.type == OVSDB_TYPE_VOID
-            && type->n_min == 0 && type->n_max == 1);
-}
-
-static inline bool ovsdb_type_is_composite(const struct ovsdb_type *type)
-{
-    return type->n_max > 1;
-}
-
-static inline bool ovsdb_type_is_set(const struct ovsdb_type *type)
-{
-    return (type->value.type == OVSDB_TYPE_VOID
-            && (type->n_min != 1 || type->n_max != 1));
-}
-
-static inline bool ovsdb_type_is_map(const struct ovsdb_type *type)
-{
-    return type->value.type != OVSDB_TYPE_VOID;
-}
 --]=]
 
+local function ovsdb_type_is_scalar(dbtype)
+    return (dbtype.value.type == ffi.C.OVSDB_TYPE_VOID
+            and dbtype.n_min == 1 and dbtype.n_max == 1);
+end
+
+
+local function ovsdb_type_is_optional(dbtype)
+    return dbtype.n_min == 0;
+end
+
+local function ovsdb_type_is_optional_scalar(dbtype)
+    return (dbtype.value.type == ffi.C.OVSDB_TYPE_VOID
+            and dbtype.n_min == 0 and dbtype.n_max == 1);
+end
+
+
+local function ovsdb_type_is_composite(dbtype)
+    return dbtype.n_max > 1;
+end
+
+local function ovsdb_type_is_set(dbtype)
+    return (dbtype.value.type == ffi.C.OVSDB_TYPE_VOID
+            and (dbtype.n_min ~= 1 or dbtype.n_max ~= 1));
+end
+
+local function ovsdb_type_is_map(dbtype)
+    return dbtype.value.type ~= ffi.C.OVSDB_TYPE_VOID;
+end
+
+
+local Lib_ovsdb_types = ffi.load("openvswitch", true)
+
+local exports = {
+    -- extern variables
+    ovsdb_type_integer = Lib_ovsdb_types.ovsdb_type_integer;
+    ovsdb_type_real = Lib_ovsdb_types.ovsdb_type_real;
+    ovsdb_type_boolean = Lib_ovsdb_types.ovsdb_type_boolean;
+    ovsdb_type_string = Lib_ovsdb_types.ovsdb_type_string;
+    ovsdb_type_uuid = Lib_ovsdb_types.ovsdb_type_uuid;
+
+    -- inline functions
+    ovsdb_type_is_map = ovsdb_type_is_map;
+}

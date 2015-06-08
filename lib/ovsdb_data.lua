@@ -262,7 +262,7 @@ char *ovsdb_token_parse(const char **, char **outp);
 bool ovsdb_token_is_delim(unsigned char);
 ]]
 
-local Lib_ovsdb_data = ffi.load("openvswitch")
+local Lib_ovsdb_data = ffi.load("openvswitch", true)
 
 local exports = {
   Lib_ovsdb_data = Lib_ovsdb_data;

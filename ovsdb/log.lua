@@ -4,7 +4,7 @@ ffi.cdef[[
 struct json;
 struct ovsdb_log;
 
-typedef struct int64_t off_t;
+typedef int64_t off_t;
 
 /* Access mode for opening an OVSDB log. */
 enum ovsdb_log_open_mode {
@@ -26,22 +26,23 @@ struct ovsdb_error *ovsdb_log_commit(struct ovsdb_log *);
 off_t ovsdb_log_get_offset(const struct ovsdb_log *);
 ]]
 
-local Lib_log = ffi.load("ovsdb")
+local libovs = ffi.load("openvswitch", true)
+local Lib_ovsdb_log = ffi.load("ovsdb", true)
 
 local exports = {
-	Lib_log = Lib_log;
+	Lib_ovsdb_log = Lib_ovsdb_log;
 
 	OVSDB_LOG_READ_ONLY = ffi.C.OVSDB_LOG_READ_ONLY;
 	OVSDB_LOG_READ_WRITE = ffi.C.OVSDB_LOG_READ_WRITE;
 	OVSDB_LOG_CREATE = ffi.C.OVSDB_LOG_CREATE;
 
-	ovsdb_log_open = Lib_log.ovsdb_log_open;
-	ovsdb_log_close = Lib_log.ovsdb_log_close;
-	ovsdb_log_read = Lib_log.ovsdb_log_read;
-	ovsdb_log_unread = Lib_log.ovsdb_log_unread;
-	ovsdb_log_write = Lib_log.ovsdb_log_write;
-	ovsdb_log_commit = Lib_log.ovsdb_log_commit;
-	ovsdb_log_get_offset = Lib_log.ovsdb_log_get_offset;
+	ovsdb_log_open = Lib_ovsdb_log.ovsdb_log_open;
+	ovsdb_log_close = Lib_ovsdb_log.ovsdb_log_close;
+	ovsdb_log_read = Lib_ovsdb_log.ovsdb_log_read;
+	ovsdb_log_unread = Lib_ovsdb_log.ovsdb_log_unread;
+	ovsdb_log_write = Lib_ovsdb_log.ovsdb_log_write;
+	ovsdb_log_commit = Lib_ovsdb_log.ovsdb_log_commit;
+	ovsdb_log_get_offset = Lib_ovsdb_log.ovsdb_log_get_offset;
 }
 
 return exports

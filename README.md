@@ -18,3 +18,11 @@ Running a simple test
 	```$ ./testit.lua testy/test_json.lua
 	```
 
+The testit.lua script ensures the proper package.path is set, and otherwise
+just loads up the specified file using a loadstring(), and executes it.
+
+To create an instance of an ovsdb database, for example:
+
+	```$ ./testit.lua testy/ovsdb_create.lua filename.db
+	```
+	

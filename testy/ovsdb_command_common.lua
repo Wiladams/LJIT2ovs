@@ -32,7 +32,7 @@ end
 local function check_ovsdb_error(err)
 
     if (err ~= nil) then
-        ovs_fatal(0, "%s", ovsdb_error_to_string(error));
+        ovs_fatal(0, "%s", ovsdb_error_to_string(err));
     end
 end
 
