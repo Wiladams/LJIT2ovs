@@ -1,6 +1,6 @@
 local ffi = require("ffi")
 
-local common = require("testy.ovctl_common")
+local common = require("testy.ovsctl_common")
 local stringz = require("core.stringz")
 
 --[[

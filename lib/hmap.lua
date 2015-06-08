@@ -4,7 +4,6 @@ local bor, band = bit.bor, bit.band
 
 --#include "util.h"
 
-local exports = {}
 
 ffi.cdef[[
 /* A hash map node, to be embedded inside the data structure being mapped. */
@@ -18,10 +17,11 @@ struct hmap_node {
 local function hmap_node_hash(node)
     return node.hash;
 end
-exports.hmap_node_hash = hmap_node_hash;
 
 local HMAP_NODE_NULL = ffi.cast("struct hmap_node *", 1);
---#define HMAP_NODE_NULL_INITIALIZER { 0, HMAP_NODE_NULL }
+local HMAP_NODE_NULL_INITIALIZER = function()
+    return ffi.new("struct hmap_node", 0, HMAP_NODE_NULL);
+end
 
 --/* Returns true if 'node' has been set to null by hmap_node_nullify() and has
 -- * not been un-nullified by being inserted into an hmap. */
@@ -45,9 +45,10 @@ struct hmap {
 };
 ]]
 
---[=[
-/* Initializer for an empty hash map. */
-#define HMAP_INITIALIZER(HMAP) { (struct hmap_node **const) &(HMAP)->one, NULL, 0, 0 }
+--/* Initializer for an empty hash map. */
+--local function HMAP_INITIALIZER(HMAP) 
+--    return ffi.new("struct hmap", (struct hmap_node **const) &(HMAP).one, nil, 0, 0);
+--end
 
 ffi.cdef[[
 /* Initialization. */
@@ -71,13 +72,17 @@ void hmap_node_moved(struct hmap *, struct hmap_node *, struct hmap_node *);
 struct hmap_node *hmap_random_node(const struct hmap *);
 ]]
 
+
+--[[
 #define hmap_expand(HMAP) hmap_expand_at(HMAP, OVS_SOURCE_LOCATOR)
 #define hmap_shrink(HMAP) hmap_shrink_at(HMAP, OVS_SOURCE_LOCATOR)
 #define hmap_reserve(HMAP, CAPACITY) \
     hmap_reserve_at(HMAP, CAPACITY, OVS_SOURCE_LOCATOR)
 #define hmap_insert(HMAP, NODE, HASH) \
     hmap_insert_at(HMAP, NODE, HASH, OVS_SOURCE_LOCATOR)
+--]]
 
+--[=[
 ffi.cdef[[
 
 #define HMAP_FOR_EACH_WITH_HASH(NODE, MEMBER, HASH, HMAP)               \
@@ -90,11 +95,13 @@ ffi.cdef[[
          NODE != OBJECT_CONTAINING(NULL, NODE, MEMBER);                  \
          ASSIGN_CONTAINER(NODE, hmap_next_in_bucket(&(NODE)->MEMBER), MEMBER))
 ]]
+--]=]
 
 ffi.cdef[[
 bool hmap_contains(const struct hmap *, const struct hmap_node *);
 ]]
 
+--[=[
 ffi.cdef[[
 /* Iteration. */
 
@@ -119,6 +126,7 @@ ffi.cdef[[
          NODE != OBJECT_CONTAINING(NULL, NODE, MEMBER);                  \
          ASSIGN_CONTAINER(NODE, hmap_next(HMAP, &(NODE)->MEMBER), MEMBER))
 ]]
+--]=]
 
 ffi.cdef[[
 struct hmap_node *hmap_at_position(const struct hmap *,
@@ -127,14 +135,14 @@ struct hmap_node *hmap_at_position(const struct hmap *,
 
 -- Returns the number of nodes currently in 'hmap'. */
 --static inline size_t
-local function hmap_count(const struct hmap *hmap)
+local function hmap_count(hmap)
     return hmap.n;
 end
 
 -- Returns the maximum number of nodes that 'hmap' may hold before it should be
 -- rehashed.
 --static inline size_t
-local function hmap_capacity(const struct hmap *hmap)
+local function hmap_capacity(hmap)
     return hmap.mask * 2 + 1;
 end
 
@@ -145,20 +153,21 @@ end
  * hmap_is_empty() is. */
 --]]
 --static inline bool
-local function hmap_is_empty(const struct hmap *hmap)
+local function hmap_is_empty(hmap)
     return hmap.n == 0;
 end
 
+--[=[
 --/* Inserts 'node', with the given 'hash', into 'hmap'.  'hmap' is never
 -- * expanded automatically. */
 --static inline void
 local function hmap_insert_fast(struct hmap *hmap, struct hmap_node *node, size_t hash)
 
     struct hmap_node **bucket = &hmap->buckets[hash & hmap->mask];
-    node->hash = hash;
-    node->next = *bucket;
+    node.hash = hash;
+    node.next = *bucket;
     *bucket = node;
-    hmap->n++;
+    hmap.n = hmap.n + 1;
 end
 
 --[[
@@ -169,7 +178,6 @@ end
  * automatically provide the caller's source file and line number for
  * 'where'.) */
 --]]
---static inline void
 local function hmap_insert_at(struct hmap *hmap, struct hmap_node *node, size_t hash,
                const char *where)
 
@@ -281,7 +289,6 @@ end
 
 --/* Returns the first node in 'hmap', in arbitrary order, or a null pointer if
 -- * 'hmap' is empty. */
---static inline struct hmap_node *
 local function hmap_first(hmap)
     return hmap_next__(hmap, 0);
 end
@@ -303,3 +310,10 @@ local function hmap_next(hmap, node)
 end
 
 
+local exports = {
+  hmap_node_hash = hmap_node_hash;
+  hmap_node_is_null = hmap_node_is_null;
+
+  hmap_first = hmap_first;
+  hmap_next = hmap_next;
+}

@@ -224,8 +224,12 @@ struct ovsdb_idl *ovsdb_idl_txn_get_idl (struct ovsdb_idl_txn *);
 
 local Lib_ovsdb_idl = ffi.load("openvswitch")
 
+
+
+
+
 local exports = {
-    Lib_ovsdb_dil = Lib_ovsdb_idl;
+    Lib_ovsdb_idl = Lib_ovsdb_idl;
 
     -- some constants
     OVSDB_IDL_MONITOR = OVSDB_IDL_MONITOR;
@@ -282,6 +286,7 @@ local exports = {
     ovsdb_idl_txn_delete = Lib_ovsdb_idl.ovsdb_idl_txn_delete;
     ovsdb_idl_txn_insert = Lib_ovsdb_idl.ovsdb_idl_txn_insert;
     ovsdb_idl_txn_get_idl = Lib_ovsdb_idl.ovsdb_idl_txn_get_idl;
+
 }
 
 
