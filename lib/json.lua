@@ -127,7 +127,7 @@ local exports = {
 
     JSSF_PRETTY = ffi.C.JSSF_PRETTY;
     JSSF_SORT = ffi.C.JSSF_SORT;
-    
+    JSPF_TRAILER = ffi.C.JSPF_TRAILER;
 
     -- Functions
     json_type_to_string = jsonlib.json_type_to_string;
