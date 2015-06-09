@@ -4,7 +4,7 @@ local libovs = require("lib.libopenvswitch");
 libovs();   -- make things global
 
 local stringz = require("stringz")
-
+local OVSTable = require("classes.OVSTable")
 
 local function test_table_struct()
 	print("==== test_table_struct() ====");

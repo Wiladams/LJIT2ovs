@@ -1,3 +1,5 @@
+local ffi = require("ffi")
+
 local ovs_table = require("lib.table")
 local Lib_table = ovs_table.Lib_table;
 local stringz = require("stringz")
@@ -34,7 +36,6 @@ function OVSTable.new(self, caption)
     Lib_table.table_init(tblPtr);
 
     ffi.gc(tblPtr, Lib_table.table_destroy);
---    ffi.gc(tblPtr, callmelast);
 
     return self:init(tblPtr, caption);
 end

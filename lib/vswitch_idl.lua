@@ -1561,7 +1561,9 @@ ffi.cdef[[
 void ovsrec_open_vswitch_init(struct ovsrec_open_vswitch *);
 void ovsrec_open_vswitch_delete(const struct ovsrec_open_vswitch *);
 struct ovsrec_open_vswitch *ovsrec_open_vswitch_insert(struct ovsdb_idl_txn *);
+]]
 
+ffi.cdef[[
 void ovsrec_open_vswitch_verify_bridges(const struct ovsrec_open_vswitch *);
 void ovsrec_open_vswitch_verify_cur_cfg(const struct ovsrec_open_vswitch *);
 void ovsrec_open_vswitch_verify_datapath_types(const struct ovsrec_open_vswitch *);
@@ -1576,7 +1578,11 @@ void ovsrec_open_vswitch_verify_ssl(const struct ovsrec_open_vswitch *);
 void ovsrec_open_vswitch_verify_statistics(const struct ovsrec_open_vswitch *);
 void ovsrec_open_vswitch_verify_system_type(const struct ovsrec_open_vswitch *);
 void ovsrec_open_vswitch_verify_system_version(const struct ovsrec_open_vswitch *);
+]]
 
+exports.ovsrec_open_vswitch_verify_bridges = Lib_vswitch_idl.ovsrec_open_vswitch_verify_bridges;
+
+ffi.cdef[[
 const struct ovsdb_datum *ovsrec_open_vswitch_get_bridges(const struct ovsrec_open_vswitch *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_open_vswitch_get_cur_cfg(const struct ovsrec_open_vswitch *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_open_vswitch_get_datapath_types(const struct ovsrec_open_vswitch *, enum ovsdb_atomic_type key_type);
@@ -1591,7 +1597,9 @@ const struct ovsdb_datum *ovsrec_open_vswitch_get_ssl(const struct ovsrec_open_v
 const struct ovsdb_datum *ovsrec_open_vswitch_get_statistics(const struct ovsrec_open_vswitch *, enum ovsdb_atomic_type key_type, enum ovsdb_atomic_type value_type);
 const struct ovsdb_datum *ovsrec_open_vswitch_get_system_type(const struct ovsrec_open_vswitch *, enum ovsdb_atomic_type key_type);
 const struct ovsdb_datum *ovsrec_open_vswitch_get_system_version(const struct ovsrec_open_vswitch *, enum ovsdb_atomic_type key_type);
+]]
 
+ffi.cdef[[
 void ovsrec_open_vswitch_set_bridges(const struct ovsrec_open_vswitch *, struct ovsrec_bridge **bridges, size_t n_bridges);
 void ovsrec_open_vswitch_set_cur_cfg(const struct ovsrec_open_vswitch *, int64_t cur_cfg);
 void ovsrec_open_vswitch_set_datapath_types(const struct ovsrec_open_vswitch *, const char **datapath_types, size_t n_datapath_types);

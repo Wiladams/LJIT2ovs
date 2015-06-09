@@ -92,9 +92,7 @@ local function strlcpy(dst, src, size)
 end
 
 local function strndup(str,n)
---print("strndup: ", str, n);
-
-	local newstr = ffi.cast("char *", ffi.gc(ffi.C.malloc(n+1), ffi.C.free));
+	local newstr = ffi.cast("char *", ffi.C.malloc(n+1));
 	strlcpy(newstr, str, n);
 
 	return newstr

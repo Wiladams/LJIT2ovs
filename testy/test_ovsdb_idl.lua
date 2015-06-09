@@ -200,7 +200,6 @@ local function prolog()
     vlog_set_levels(nil, ffi.C.VLF_CONSOLE, ffi.C.VLL_WARN);
     vlog_set_levels(VLM_reconnect, ffi.C.VLF_ANY_DESTINATION, ffi.C.VLL_WARN);
 
-    --local idl, err = ovsdb_idl_create(db,ovsrec_idl_class,monitor_everything,retry);	
     local idl, err = OVSDBIdl(ovsrec_idl_class, db, monitor_everything, retry);
 
 	if not idl == nil then
@@ -208,20 +207,34 @@ local function prolog()
 		return ;
 	end
 
-    --ovsdb_idl_add_table(idl, ovsrec_table_open_vswitch);
-    success, err = idl:addTable(ovsrec_table_open_vswitch);
+     success, err = idl:addTable(ovsrec_table_open_vswitch);
 
 
     if wait_for_reload then
-        --ovsdb_idl_add_column(idl, ovsrec_open_vswitch_col_cur_cfg);
         success, err = idl:addColumn(ovsrec_open_vswitch_col_cur_cfg);
         --print("LAST ERROR, add_column: ", ovsdb_idl_get_last_error(idl));
     end
 
     return {
-        idl = idl;
+        argc = 0;
+        argv = nil;
+        --struct shash options;
+
+        -- modifiable state
         output = dynamic_string();
-        --struct table *table;
+        --struct table *table;        
+        idl = idl;
+        -- struct ovsdb_idl_txn txn
+        -- struct ovsdb_symbol_table symtab
+        -- struct ovsrec_open_vswitch ovs
+        verified_ports = false;
+
+        cache_valid = false;
+        --shash bridges;
+        -- shash ports;
+        -- shash ifaces;
+
+        try_again = false;
     }
 end
 
@@ -251,7 +264,6 @@ local function main()
 	pre_cmd_show(ctx)
 
 
-    --local seqno = ovsdb_idl_get_seqno(ctx.idl);
     local seqno = ctx.idl:getSeqNo();
     print("seqno START - ", seqno);
 
