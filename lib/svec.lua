@@ -57,10 +57,14 @@ local Lib_svec = ffi.load("openvswitch")
 
 local svec = ffi.typeof("struct svec")
 local svec_mt = {
-    __new = function(ct, ...)
-        local obj = ffi.new(ct, ...);
+    __new = function(ct, words)
+        local obj = ffi.new(ct);
         Lib_svec.svec_init(obj);
         
+        if type(words) == "string" then
+            Lib_svec.svec_parse_words(obj, words);
+        end
+
         return obj;
     end;
 
@@ -71,13 +75,76 @@ local svec_mt = {
         Lib_svec.svec_destroy(self);
     end;
 
+    __eq = function(self, other)
+        return Lib_svec.svec_equal(self, other);
+    end,
+
     __index = {
+        
+        add = function(self, str)
+            Lib_svec.svec_add(self, str);
+        end,
+
+        append = function(self, other)
+            for i = 0, tonumber(other.n)-1 do
+                self:add(other.names[i]);
+            end
+        end,
+
         clear = function(self)
-          Lib_svec.clear(self);
+            Lib_svec.svec_clear(self);
+        end,
+
+        contains = function(self, name)
+            return Lib_svec.svec_contains(self, name);
+        end,
+
+        find = function(self, name)
+            if not self:isSorted() then
+                return false, "not sorted"
+            end
+
+            return Lib_svec.svec_find(name);
+        end,
+
+        isSorted = function(self)
+            return Lib_svec.svec_is_sorted(self);
+        end,
+
+        isUnique = function(self)
+            return Lib_svec.svec_is_unique(self);
+        end,
+
+        concat = function(self, delim, term)
+            delim = delim or ",";
+            term = term or "";
+            local cstr = Lib_svec.svec_join(self, delim, term);
+
+            local res = ffi.string(cstr);
+
+            ffi.C.free(cstr);
+
+            return res;
+        end,
+
+        delete = function(self, name)
+            if not self:isSorted() then
+                return false, "svec needs to be sorted for this operation"
+            end
+
+            Lib_svec.svec_del(self, name);
+        end,
+
+        splitWords = function(self, words)
+            Lib_svec.svec_parse_words(self, words);
+        end,
+
+        ["print"] = function(self, title)
+            Lib_svec.svec_print(self, title);
         end,
 
         sort = function(self)
-            Lib_svec.sort(self);
+            Lib_svec.svec_sort(self);
         end,
     };
 }
