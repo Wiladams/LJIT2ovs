@@ -83,16 +83,22 @@ local svec_mt = {
         
         add = function(self, str)
             Lib_svec.svec_add(self, str);
+
+            return self;
         end,
 
         append = function(self, other)
             for i = 0, tonumber(other.n)-1 do
                 self:add(other.names[i]);
             end
+
+            return self;
         end,
 
         clear = function(self)
             Lib_svec.svec_clear(self);
+
+            return self;
         end,
 
         contains = function(self, name)
@@ -101,7 +107,7 @@ local svec_mt = {
 
         find = function(self, name)
             if not self:isSorted() then
-                return false, "not sorted"
+                return false, "svec needs to be sorted for this operation"
             end
 
             return Lib_svec.svec_find(name);
@@ -133,18 +139,26 @@ local svec_mt = {
             end
 
             Lib_svec.svec_del(self, name);
+
+            return self;
         end,
 
         splitWords = function(self, words)
             Lib_svec.svec_parse_words(self, words);
+
+            return self;
         end,
 
         ["print"] = function(self, title)
             Lib_svec.svec_print(self, title);
+
+            return self;
         end,
 
         sort = function(self)
             Lib_svec.svec_sort(self);
+
+            return self;
         end,
     };
 }
