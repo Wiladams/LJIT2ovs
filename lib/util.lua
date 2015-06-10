@@ -552,8 +552,12 @@ end
 
 local exports = {
     ovs_abort = Lib_util.ovs_abort;
+    ovs_error = Lib_util.ovs_error;
     ovs_fatal = Lib_util.ovs_fatal;
 
+    ovs_retval_to_string = Lib_util.ovs_retval_to_string;
+
+    xasprintf = Lib_util.xasprintf;
     xmalloc = Lib_util.xmalloc;
     xstrdup = Lib_util.xstrdup;
 }

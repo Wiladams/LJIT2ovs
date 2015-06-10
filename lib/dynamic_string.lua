@@ -71,7 +71,7 @@ end
 
 local function dynamic_string()
     local ptr = ffi.cast("struct ds *", ffi.C.malloc(ffi.sizeof("struct ds")));
-    ffi.fill(ptr, 0, ffi.sizeof("struct ds"));
+    --ffi.fill(ptr, 0, ffi.sizeof("struct ds"));
     Lib_dynamic_string.ds_init(ptr);
     ffi.gc(ptr, Lib_dynamic_string.ds_destroy);
 

@@ -216,6 +216,11 @@ struct vsctl_command {
 };
 ]]
 local vsctl_command = {}
+setmetatable(vsctl_command, {
+    __call = function(self, ...)
+        return self:new(...);
+    end,
+});
 local vsctl_command_mt = {
     __index = vsctl_command;
 }
@@ -231,13 +236,13 @@ local vsctl_command_mt = {
 function vsctl_command.init(self,params)
     params = params or {}
     local obj = {
-        syntax = params.syntax;
-        argc = params.argc;
-        argv = params.argv;
-        options = options;
+        syntax = params.syntax;     -- struct vsctl_command_syntax
+        argc = params.argc;         -- count of argv
+        argv = params.argv;         -- 
+        options = options;          -- struct shash options
 
-        output = dynamic_string();
-        table = params.table;
+        output = dynamic_string();  -- struct ds output
+        table = params.table;       -- struct table *
     }
     setmetatable(obj, vsctl_command_mt);
 
@@ -303,24 +308,22 @@ local function vsctl_fatal(format, ...)
 end
 
 
-local function find_vlan_bridge(parent, int vlan)
-{
+local function find_vlan_bridge(parent, vlan)
+--[[
     struct vsctl_bridge *child;
 
     HMAP_FOR_EACH_IN_BUCKET (child, children_node, hash_int(vlan, 0),
-                             &parent->children) do
-        if (child->vlan == vlan) then
+                             parent.children) do
+        if (child.vlan == vlan) then
             return child;
         end
     end
-
+--]]
     return nil;
 end
 
-local function add_bridge_to_cache(ctx,
-                    struct ovsrec_bridge *br_cfg, name,
-                    struct vsctl_bridge *parent, vlan)
-
+local function add_bridge_to_cache(ctx,br_cfg, name,parent, vlan)
+--[[
     struct vsctl_bridge *br = ffi.cast("struct vsctl_bridge", xmalloc(ffi.sizeof("struct vsctl_bridge"));
     br.br_cfg = br_cfg;
     br.name = xstrdup(name);
@@ -342,12 +345,12 @@ local function add_bridge_to_cache(ctx,
     end
 
     shash_add(ctx.bridges, br.name, br);
-    
+--]]
     return br;
 end
 
 local function vsctl_context_populate_cache(ctx)
-
+--[[
     local ovs = ctx.ovs;
     struct sset bridges, ports;
     size_t i;
@@ -460,7 +463,8 @@ local function vsctl_context_populate_cache(ctx)
         }
     }
     sset_destroy(&bridges);
-}
+--]]
+end
 
 
 local function output_sorted(sv, output)
@@ -469,6 +473,219 @@ local function output_sorted(sv, output)
         ds_put_format(output, "%s\n", name);
     end
 end
+
+local function post_db_reload_check_init()
+    n_neoteric_ifaces = 0;
+end
+
+local function do_vsctl(args, commands, n_commands, idl)
+    --struct ovsdb_idl_txn *txn;
+    --enum ovsdb_idl_txn_status status;
+    --struct ovsdb_symbol_table *symtab;
+    --struct vsctl_context ctx;
+    --struct vsctl_command *c;
+    --struct shash_node *node;
+    --int64_t next_cfg = 0;
+    --char *error = NULL;
+
+    local txn = ovsdb_idl_txn_create(idl.Handle);
+    the_idl_txn = txn;
+
+    if (dry_run) then
+        ovsdb_idl_txn_set_dry_run(txn);
+    end
+
+    ovsdb_idl_txn_add_comment(txn, "ovs-vsctl: %s", args);
+
+    local ovs = ovsrec_open_vswitch_first(idl.Handle);
+
+    if (nil == ovs) then
+        -- XXX add verification that table is empty
+        ovs = ovsrec_open_vswitch_insert(txn);
+    end
+
+
+    if (wait_for_reload) then
+        ovsdb_idl_txn_increment(txn, ovs.header_, ovsrec_open_vswitch_col_next_cfg);
+    end
+
+    post_db_reload_check_init();
+    local symtab = ovsdb_symbol_table_create();
+
+    for _, c in ipairs(commands) do
+        ds_init(c.output);
+        c.table = nil;
+    end
+
+    local ctx = vsctl_context({command = nil, idl = idl, txn = txn, ovs = ovs, symtab=symtab});
+
+
+    --vsctl_context_init(&ctx, NULL, idl, txn, ovs, symtab);
+--[[
+    for (c = commands; c < &commands[n_commands]; c++) {
+        vsctl_context_init_command(&ctx, c);
+        if (c->syntax->run) {
+            (c->syntax->run)(&ctx);
+        }
+        vsctl_context_done_command(&ctx, c);
+
+        if (ctx.try_again) {
+            vsctl_context_done(&ctx, NULL);
+            goto try_again;
+        }
+    }
+--]]
+--[[
+    vsctl_context_done(&ctx, NULL);
+
+    SHASH_FOR_EACH (node, &symtab->sh) {
+        struct ovsdb_symbol *symbol = node->data;
+        if (!symbol->created) {
+            vsctl_fatal("row id \"%s\" is referenced but never created (e.g. "
+                        "with \"-- --id=%s create ...\")",
+                        node->name, node->name);
+        }
+        if (!symbol->strong_ref) {
+            if (!symbol->weak_ref) {
+                VLOG_WARN("row id \"%s\" was created but no reference to it "
+                          "was inserted, so it will not actually appear in "
+                          "the database", node->name);
+            } else {
+                VLOG_WARN("row id \"%s\" was created but only a weak "
+                          "reference to it was inserted, so it will not "
+                          "actually appear in the database", node->name);
+            }
+        }
+    }
+
+    status = ovsdb_idl_txn_commit_block(txn);
+    if (wait_for_reload && status == TXN_SUCCESS) {
+        next_cfg = ovsdb_idl_txn_get_increment_new_value(txn);
+    }
+    if (status == TXN_UNCHANGED || status == TXN_SUCCESS) {
+        for (c = commands; c < &commands[n_commands]; c++) {
+            if (c->syntax->postprocess) {
+                struct vsctl_context ctx;
+
+                vsctl_context_init(&ctx, c, idl, txn, ovs, symtab);
+                (c->syntax->postprocess)(&ctx);
+                vsctl_context_done(&ctx, c);
+            }
+        }
+    }
+    error = xstrdup(ovsdb_idl_txn_get_error(txn));
+
+    switch (status) {
+    case TXN_UNCOMMITTED:
+    case TXN_INCOMPLETE:
+        OVS_NOT_REACHED();
+
+    case TXN_ABORTED:
+        /* Should not happen--we never call ovsdb_idl_txn_abort(). */
+        vsctl_fatal("transaction aborted");
+
+    case TXN_UNCHANGED:
+    case TXN_SUCCESS:
+        break;
+
+    case TXN_TRY_AGAIN:
+        goto try_again;
+
+    case TXN_ERROR:
+        vsctl_fatal("transaction error: %s", error);
+
+    case TXN_NOT_LOCKED:
+        /* Should not happen--we never call ovsdb_idl_set_lock(). */
+        vsctl_fatal("database not locked");
+
+    default:
+        OVS_NOT_REACHED();
+    }
+    free(error);
+
+    ovsdb_symbol_table_destroy(symtab);
+
+    for (c = commands; c < &commands[n_commands]; c++) {
+        struct ds *ds = &c->output;
+
+        if (c->table) {
+            table_print(c->table, &table_style);
+        } else if (oneline) {
+            size_t j;
+
+            ds_chomp(ds, '\n');
+            for (j = 0; j < ds->length; j++) {
+                int ch = ds->string[j];
+                switch (ch) {
+                case '\n':
+                    fputs("\\n", stdout);
+                    break;
+
+                case '\\':
+                    fputs("\\\\", stdout);
+                    break;
+
+                default:
+                    putchar(ch);
+                }
+            }
+            putchar('\n');
+        } else {
+            fputs(ds_cstr(ds), stdout);
+        }
+        ds_destroy(&c->output);
+        table_destroy(c->table);
+        free(c->table);
+
+        shash_destroy_free_data(&c->options);
+    }
+    free(commands);
+
+    if (wait_for_reload && status != TXN_UNCHANGED) {
+        /* Even, if --retry flag was not specified, ovs-vsctl still
+         * has to retry to establish OVSDB connection, if wait_for_reload
+         * was set.  Otherwise, ovs-vsctl would end up waiting forever
+         * until cur_cfg would be updated. */
+        ovsdb_idl_enable_reconnect(idl);
+        for (;;) {
+            ovsdb_idl_run(idl);
+            OVSREC_OPEN_VSWITCH_FOR_EACH (ovs, idl) {
+                if (ovs->cur_cfg >= next_cfg) {
+                    post_db_reload_do_checks(&ctx);
+                    goto done;
+                }
+            }
+            ovsdb_idl_wait(idl);
+            poll_block();
+        }
+    done: ;
+    }
+    ovsdb_idl_txn_destroy(txn);
+    ovsdb_idl_destroy(idl);
+
+    exit(EXIT_SUCCESS);
+
+try_again:
+    /* Our transaction needs to be rerun, or a prerequisite was not met.  Free
+     * resources and return so that the caller can try again. */
+    if (txn) {
+        ovsdb_idl_txn_abort(txn);
+        ovsdb_idl_txn_destroy(txn);
+        the_idl_txn = NULL;
+    }
+    ovsdb_symbol_table_destroy(symtab);
+    for (c = commands; c < &commands[n_commands]; c++) {
+        ds_destroy(&c->output);
+        table_destroy(c->table);
+        free(c->table);
+    }
+    free(error);
+--]]
+end
+
+
+
+
 
 local exports = {
     Lib_ovsdb = libovsdb;
@@ -485,6 +702,7 @@ local exports = {
     -- local functions
     default_db = default_db;
     default_schema = default_schema;
+    do_vsctl = do_vsctl;
     check_ovsdb_error = check_ovsdb_error;
     output_sorted = output_sorted;
 

@@ -58,8 +58,17 @@ struct shash_node *shash_random_node(struct shash *);
 
 local Lib_shash = ffi.load("openvswitch")
 
+local function shash_create()
+	local it = ffi.C.malloc(ffi.sizeof("struct shash"))
+	Lib_shash.shash_init(it);
+
+	return it;
+end
+
 local exports = {
 	Lib_shash = Lib_shash;
+
+	shash_create = shash_create;
 
 	shash_init = Lib_shash.shash_init;
 	shash_destroy = Lib_shash.shash_destroy;
