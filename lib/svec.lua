@@ -105,6 +105,21 @@ local svec_mt = {
             return Lib_svec.svec_contains(self, name);
         end,
 
+        entries = function(self)
+            local idx = -1;
+
+            local function closure()
+                idx = idx + 1;
+                if idx >= self.n then
+                    return nil;
+                end
+
+                return ffi.string(self.names[idx]);
+            end
+
+            return closure
+        end,
+
         find = function(self, name)
             if not self:isSorted() then
                 return false, "svec needs to be sorted for this operation"

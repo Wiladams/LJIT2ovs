@@ -191,12 +191,13 @@ end
 --[[
 /* Given a pointer-typed lvalue OBJECT, expands to a pointer type that may be
  * assigned to OBJECT. */
-#ifdef __GNUC__
-#define OVS_TYPEOF(OBJECT) typeof(OBJECT)
-#else
-#define OVS_TYPEOF(OBJECT) void *
-#endif
+--]]
 
+local function OVS_TYPEOF(OBJECT) 
+    return ffi.typeof(OBJECT); 
+end
+
+--[[
 /* Given OBJECT of type pointer-to-structure, expands to the offset of MEMBER
  * within an instance of the structure.
  *
@@ -212,7 +213,13 @@ end
 #define OBJECT_OFFSETOF(OBJECT, MEMBER) \
     ((char *) &(OBJECT)->MEMBER - (char *) (OBJECT))
 #endif
+--]]
 
+local function OBJECT_OFFSETOF(OBJECT, MEMBER)
+    return ffi.offsetof(OVS_TYPEOF(OBJECT), MEMBER);
+end
+
+--[[
 /* Given POINTER, the address of the given MEMBER in a STRUCT object, returns
    the STRUCT object. */
 #define CONTAINER_OF(POINTER, STRUCT, MEMBER)                           \
@@ -546,6 +553,9 @@ end
 local exports = {
     ovs_abort = Lib_util.ovs_abort;
     ovs_fatal = Lib_util.ovs_fatal;
+
+    xmalloc = Lib_util.xmalloc;
+    xstrdup = Lib_util.xstrdup;
 }
 
 return exports;

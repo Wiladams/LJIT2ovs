@@ -134,6 +134,15 @@ local function test_append()
 	s1:print("APPENDED")
 end
 
+local function test_iterator()
+	print("==== test_iterator ====")
+	local s1 = svec("a b c d e f g")
+
+	for entry in s1:entries() do
+		print(entry)
+	end
+end
+
 --test_print();
 --test_sort();
 --test_equality();
@@ -141,4 +150,5 @@ end
 --test_concat();
 --test_delete();
 --test_unique();
-test_append();
+--test_append();
+test_iterator();

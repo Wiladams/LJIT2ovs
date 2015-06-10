@@ -1,7 +1,8 @@
 local ffi = require("ffi")
 
-local common = require("testy.ovsctl_common")
+local common = require("utils.ovsctl_common")
 common();
+
 local classes = require("classes.classes")
 local OVSDBIdl = classes.OVSDBIdl;
 
@@ -11,29 +12,7 @@ local dry_run = false;
 local wait_for_reload = false;
 
 
-ffi.cdef[[
-struct vsctl_bridge {
-    struct ovsrec_bridge *br_cfg;
-    char *name;
-    struct ovs_list ports;      /* Contains "struct vsctl_port"s. */
 
-    /* VLAN ("fake") bridge support.
-     *
-     * Use 'parent != NULL' to detect a fake bridge, because 'vlan' can be 0
-     * in either case. */
-    struct hmap children;        /* VLAN bridges indexed by 'vlan'. */
-    struct hmap_node children_node; /* Node in parent's 'children' hmap. */
-    struct vsctl_bridge *parent; /* Real bridge, or NULL. */
-    int vlan;                    /* VLAN VID (0...4095), or 0. */
-};
-
-struct vsctl_port {
-    struct ovs_list ports_node;  /* In struct vsctl_bridge's 'ports' list. */
-    struct ovs_list ifaces;      /* Contains "struct vsctl_iface"s. */
-    struct ovsrec_port *port_cfg;
-    struct vsctl_bridge *bridge;
-};
-]]
 
 
 
@@ -88,15 +67,15 @@ local function cmd_list_ports(ctx)
     end
 
     local ports = svec();
---[[
+
     LIST_FOR_EACH (port, ports_node, &br->ports) {
         if (strcmp(port->port_cfg->name, br->name)) then
-            svec_add(&ports, port->port_cfg->name);
-        end
+            ports:add(port.port_cfg.name)
+         end
     }
 
     output_sorted(ports, ctx.output);
---]=]
+
 end
 
 

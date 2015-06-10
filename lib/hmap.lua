@@ -4,6 +4,8 @@ local bor, band = bit.bor, bit.band
 
 --#include "util.h"
 
+local Lib_hmap = ffi.load("openvswitch")
+
 
 ffi.cdef[[
 /* A hash map node, to be embedded inside the data structure being mapped. */
@@ -13,14 +15,18 @@ struct hmap_node {
 };
 ]]
 
--- Returns the hash value embedded in 'node'.
-local function hmap_node_hash(node)
-    return node.hash;
-end
+
 
 local HMAP_NODE_NULL = ffi.cast("struct hmap_node *", 1);
 local HMAP_NODE_NULL_INITIALIZER = function()
-    return ffi.new("struct hmap_node", 0, HMAP_NODE_NULL);
+    local node = ffi.cast("struct hmap_node *", ffi.malloc(ffi.sizeof("struct hmap_node")));
+    node.hash = 0;
+    node.next = HMAP_NODE_NULL;
+end
+
+-- Returns the hash value embedded in 'node'.
+local function hmap_node_hash(node)
+    return node.hash;
 end
 
 --/* Returns true if 'node' has been set to null by hmap_node_nullify() and has
@@ -34,6 +40,7 @@ end
 local function hmap_node_nullify(node)
     node.next = HMAP_NODE_NULL;
 end
+
 
 ffi.cdef[[
 /* A hash map. */
@@ -73,17 +80,25 @@ struct hmap_node *hmap_random_node(const struct hmap *);
 ]]
 
 
---[[
-#define hmap_expand(HMAP) hmap_expand_at(HMAP, OVS_SOURCE_LOCATOR)
-#define hmap_shrink(HMAP) hmap_shrink_at(HMAP, OVS_SOURCE_LOCATOR)
-#define hmap_reserve(HMAP, CAPACITY) \
-    hmap_reserve_at(HMAP, CAPACITY, OVS_SOURCE_LOCATOR)
-#define hmap_insert(HMAP, NODE, HASH) \
-    hmap_insert_at(HMAP, NODE, HASH, OVS_SOURCE_LOCATOR)
---]]
+
+local function  hmap_expand(HMAP) 
+    Lib_hmap.hmap_expand_at(HMAP, "OVS_SOURCE_LOCATOR")
+end
+
+local function hmap_shrink(HMAP) 
+    Lib_hmap.hmap_shrink_at(HMAP, "OVS_SOURCE_LOCATOR")
+end
+
+local function hmap_reserve(HMAP, CAPACITY)
+    Lib_hmap.hmap_reserve_at(HMAP, CAPACITY, "OVS_SOURCE_LOCATOR")
+end
+
+local function hmap_insert(HMAP, NODE, HASH)
+    Lib_hmap.hmap_insert_at(HMAP, NODE, HASH, "OVS_SOURCE_LOCATOR")
+end
 
 --[=[
-ffi.cdef[[
+
 
 #define HMAP_FOR_EACH_WITH_HASH(NODE, MEMBER, HASH, HMAP)               \
     for (INIT_CONTAINER(NODE, hmap_first_with_hash(HMAP, HASH), MEMBER); \
@@ -94,7 +109,7 @@ ffi.cdef[[
     for (INIT_CONTAINER(NODE, hmap_first_in_bucket(HMAP, HASH), MEMBER); \
          NODE != OBJECT_CONTAINING(NULL, NODE, MEMBER);                  \
          ASSIGN_CONTAINER(NODE, hmap_next_in_bucket(&(NODE)->MEMBER), MEMBER))
-]]
+
 --]=]
 
 ffi.cdef[[
@@ -102,7 +117,7 @@ bool hmap_contains(const struct hmap *, const struct hmap_node *);
 ]]
 
 --[=[
-ffi.cdef[[
+
 /* Iteration. */
 
 /* Iterates through every node in HMAP. */
@@ -125,7 +140,7 @@ ffi.cdef[[
     for (ASSIGN_CONTAINER(NODE, hmap_next(HMAP, &(NODE)->MEMBER), MEMBER); \
          NODE != OBJECT_CONTAINING(NULL, NODE, MEMBER);                  \
          ASSIGN_CONTAINER(NODE, hmap_next(HMAP, &(NODE)->MEMBER), MEMBER))
-]]
+
 --]=]
 
 ffi.cdef[[
@@ -302,7 +317,7 @@ end
  * not prevent calling this function, since node->next is preserved, although
  * freeing 'node' of course does.) */
 --]]
---static inline struct hmap_node *
+
 local function hmap_next(hmap, node)
     if node.next ~= nil then return node.next end
 
@@ -310,10 +325,16 @@ local function hmap_next(hmap, node)
 end
 
 
-local exports = {
-  hmap_node_hash = hmap_node_hash;
-  hmap_node_is_null = hmap_node_is_null;
 
-  hmap_first = hmap_first;
-  hmap_next = hmap_next;
+local exports = {
+    Lib_hmap = LIb_hmap;
+
+    -- inline functions
+    hmap_node_hash = hmap_node_hash;
+    hmap_node_is_null = hmap_node_is_null;
+
+    hmap_first = hmap_first;
+    hmap_next = hmap_next;
 }
+
+return exports;

@@ -9,34 +9,34 @@ local EXIT_FAILURE = 1;
 local EXIT_SUCCESS = 0;
 
 
+ffi.cdef[[
+struct vsctl_bridge {
+    struct ovsrec_bridge *br_cfg;
+    char *name;
+    struct ovs_list ports;      /* Contains "struct vsctl_port"s. */
 
-local def_db = nil;
+    /* VLAN ("fake") bridge support.
+     *
+     * Use 'parent != NULL' to detect a fake bridge, because 'vlan' can be 0
+     * in either case. */
+    struct hmap children;        /* VLAN bridges indexed by 'vlan'. */
+    struct hmap_node children_node; /* Node in parent's 'children' hmap. */
+    struct vsctl_bridge *parent; /* Real bridge, or NULL. */
+    int vlan;                    /* VLAN VID (0...4095), or 0. */
+};
+]]
 
-local function default_db()
-    if (def_db == nil) then
-        def_db = string.format("unix:%s/db.sock", ovs_rundir());
-    end
+ffi.cdef[[
+struct vsctl_port {
+    struct ovs_list ports_node;  /* In struct vsctl_bridge's 'ports' list. */
+    struct ovs_list ifaces;      /* Contains "struct vsctl_iface"s. */
+    struct ovsrec_port *port_cfg;
+    struct vsctl_bridge *bridge;
+};
+]]
 
-    return def_db;
-end
 
-local def_schema = nil;
 
-local function default_schema(void)
-
-    if (def_schema == nil) then
-        def_schema = string.format("%s/vswitch.ovsschema", ffi.string(ovs_pkgdatadir()));
-    end
-
-    return def_schema;
-end
-
-local function check_ovsdb_error(err)
-
-    if (err ~= nil) then
-        ovs_fatal(0, "%s", ovsdb_error_to_string(err));
-    end
-end
 
 
 
@@ -200,7 +200,9 @@ struct vsctl_command_syntax {
 
     enum { RO, RW } mode;       /* Does this command modify the database? */
 };
+]]
 
+ffi.cdef[[
 struct vsctl_command {
     /* Data that remains constant after initialization. */
     const struct vsctl_command_syntax *syntax;
@@ -247,6 +249,37 @@ function vsctl_command.new(self, ...)
 end
 
 
+--[[
+    Helpful Functions
+--]]
+
+local def_db = nil;
+
+local function default_db()
+    if (def_db == nil) then
+        def_db = string.format("unix:%s/db.sock", ovs_rundir());
+    end
+
+    return def_db;
+end
+
+local def_schema = nil;
+
+local function default_schema(void)
+
+    if (def_schema == nil) then
+        def_schema = string.format("%s/vswitch.ovsschema", ffi.string(ovs_pkgdatadir()));
+    end
+
+    return def_schema;
+end
+
+local function check_ovsdb_error(err)
+
+    if (err ~= nil) then
+        ovs_fatal(0, "%s", ovsdb_error_to_string(err));
+    end
+end
 
 local function vsctl_exit(status)
 
@@ -269,6 +302,50 @@ local function vsctl_fatal(format, ...)
     vsctl_exit(-1);     -- EXIT_FAILURE
 end
 
+
+local function find_vlan_bridge(parent, int vlan)
+{
+    struct vsctl_bridge *child;
+
+    HMAP_FOR_EACH_IN_BUCKET (child, children_node, hash_int(vlan, 0),
+                             &parent->children) do
+        if (child->vlan == vlan) then
+            return child;
+        end
+    end
+
+    return nil;
+end
+
+local function add_bridge_to_cache(ctx,
+                    struct ovsrec_bridge *br_cfg, name,
+                    struct vsctl_bridge *parent, vlan)
+
+    struct vsctl_bridge *br = ffi.cast("struct vsctl_bridge", xmalloc(ffi.sizeof("struct vsctl_bridge"));
+    br.br_cfg = br_cfg;
+    br.name = xstrdup(name);
+    list_init(br.ports);
+    br.parent = parent;
+    br.vlan = vlan;
+    hmap_init(br.children);
+
+    if (parent ~= nil) then
+        conflict = find_vlan_bridge(parent, vlan);
+        if (conflict) {
+            VLOG_WARN("%s: bridge has multiple VLAN bridges (%s and %s) "
+                      "for VLAN %d, but only one is allowed",
+                      parent->name, name, conflict->name, vlan);
+        else
+            hmap_insert(&parent->children, &br->children_node,
+                        hash_int(vlan, 0));
+        end
+    end
+
+    shash_add(ctx.bridges, br.name, br);
+    
+    return br;
+end
+
 local function vsctl_context_populate_cache(ctx)
 
     local ovs = ctx.ovs;
@@ -281,42 +358,42 @@ local function vsctl_context_populate_cache(ctx)
     end
 
     ctx.cache_valid = true;
-    shash_init(ctx->bridges);
-    shash_init(ctx->ports);
-    shash_init(ctx->ifaces);
+    shash_init(ctx.bridges);
+    shash_init(ctx.ports);
+    shash_init(ctx.ifaces);
 
-    sset_init(&bridges);
-    sset_init(&ports);
-    for (i = 0; i < ovs->n_bridges; i++) {
-        struct ovsrec_bridge *br_cfg = ovs->bridges[i];
+    sset_init(bridges);
+    sset_init(ports);
+    for i = 0, ovs.n_bridges-1 do
+        br_cfg = ovs.bridges[i];
         struct vsctl_bridge *br;
         size_t j;
 
-        if (!sset_add(&bridges, br_cfg->name)) {
+        if (not sset_add(bridges, br_cfg.name)) then
             VLOG_WARN("%s: database contains duplicate bridge name",
-                      br_cfg->name);
-            continue;
-        }
-        br = add_bridge_to_cache(ctx, br_cfg, br_cfg->name, NULL, 0);
-        if (!br) {
-            continue;
-        }
-
-        for (j = 0; j < br_cfg->n_ports; j++) {
-            struct ovsrec_port *port_cfg = br_cfg->ports[j];
-
-            if (!sset_add(&ports, port_cfg->name)) {
-                /* Duplicate port name.  (We will warn about that later.) */
+                      br_cfg.name);
+        else
+            br = add_bridge_to_cache(ctx, br_cfg, br_cfg.name, nil, 0);
+            if (!br) {
                 continue;
             }
 
-            if (port_is_fake_bridge(port_cfg)
-                && sset_add(&bridges, port_cfg->name)) {
-                add_bridge_to_cache(ctx, NULL, port_cfg->name, br,
+            for (j = 0; j < br_cfg->n_ports; j++) {
+                struct ovsrec_port *port_cfg = br_cfg->ports[j];
+
+                if (!sset_add(&ports, port_cfg->name)) {
+                    /* Duplicate port name.  (We will warn about that later.) */
+                    continue;
+                }
+
+                if (port_is_fake_bridge(port_cfg)
+                    && sset_add(&bridges, port_cfg->name)) {
+                    add_bridge_to_cache(ctx, NULL, port_cfg->name, br,
                                     *port_cfg->tag);
+                }
             }
-        }
-    }
+        end
+    end
     sset_destroy(&bridges);
     sset_destroy(&ports);
 
@@ -386,14 +463,11 @@ local function vsctl_context_populate_cache(ctx)
 }
 
 
-local function output_sorted(svec, output)
-
-    const char *name;
-
-    svec:sort();
-    SVEC_FOR_EACH (i, name, svec) {
+local function output_sorted(sv, output)
+    sv:sort();
+    for name in sv:entries() do
         ds_put_format(output, "%s\n", name);
-    }
+    end
 end
 
 local exports = {
@@ -412,6 +486,7 @@ local exports = {
     default_db = default_db;
     default_schema = default_schema;
     check_ovsdb_error = check_ovsdb_error;
+    output_sorted = output_sorted;
 
     vsctl_context_populate_cache = vsctl_context_populate_cache;
     vsctl_fatal = vsctl_fatal;
