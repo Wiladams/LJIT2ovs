@@ -2,13 +2,9 @@ local ffi = require("ffi")
 local bit = require("bit")
 local bnot = bit.bnot
 local band, bor, bxor = bit.band, bit.bor, bit.bxor
-local lshift, rshift, rol = bit.lshift, bit.rshift, bit.rol
+local lshift, rshift, rol, ror = bit.lshift, bit.rshift, bit.rol, bit.ror
 
-require ("lib.util")
-
-
-
-
+local util = require ("lib.util")
 
 ffi.cdef[[
 uint32_t hash_bytes(const void *, size_t n_bytes, uint32_t basis);
@@ -16,14 +12,6 @@ uint32_t hash_bytes(const void *, size_t n_bytes, uint32_t basis);
 void hash_bytes128(const void *_, size_t n_bytes, uint32_t basis,
                    ovs_u128 *out);
 ]]
-
-static inline uint32_t hash_int(uint32_t x, uint32_t basis);
-static inline uint32_t hash_2words(uint32_t, uint32_t);
-static inline uint32_t hash_uint64(const uint64_t);
-static inline uint32_t hash_uint64_basis(const uint64_t x, const uint32_t basis);
-static inline uint32_t hash_boolean(bool x, uint32_t basis);
-static inline uint32_t hash_pointer(const void *, uint32_t basis);
-static inline uint32_t hash_string(const char *, uint32_t basis);
 
 
 ffi.cdef[[
@@ -50,7 +38,7 @@ end
 
 local function mhash_add__(hash, data)
     data = data * 0xcc9e2d51;
-    data = hash_rot(data, 15);
+    data = ror(data, 15);
     data = data * 0x1b873593;
 
     return bxor(hash, data);
@@ -58,16 +46,16 @@ end
 
 local function mhash_add(hash, data)
     hash = mhash_add__(hash, data);
-    hash = hash_rot(hash, 13);
+    hash = ror(hash, 13);
     return hash * 5 + 0xe6546b64;
 end
 
 local function mhash_finish(hash)
-    hash ^= rshift(hash, 16);
+    hash = bxor(hash, rshift(hash, 16));
     hash = hash * 0x85ebca6b;
-    hash ^= rshift(hash, 13);
+    hash = bxor(hash, rshift(hash, 13));
     hash = hash * 0xc2b2ae35;
-    hash ^= rshift(hash, 16);
+    hash = bxor(hash, rshift(hash, 16));
 
     return hash;
 end
@@ -99,18 +87,16 @@ end
  * in many cases is a constant. */
 --]]
 --static inline uint32_t
-hash_words_inline(const uint32_t p[], size_t n_words, uint32_t basis)
+local function hash_words_inline(p, n_words, basis)
 
-    uint32_t hash;
-    size_t i;
-
-    hash = basis;
-    for (i = 0; i < n_words; i++) {
+    local hash = basis;
+    for i = 0, n_words-1 do
         hash = hash_add(hash, p[i]);
-    }
+    end
     return hash_finish(hash, n_words * 4);
 end
 
+--[=[
 --static inline uint32_t
 local function hash_words64_inline(const uint64_t p[], size_t n_words, uint32_t basis)
 
@@ -138,6 +124,7 @@ static inline uint32_t hash_pointer(const void *p, uint32_t basis)
 --]]
     return hash_int((uint32_t) (uintptr_t) p, basis);
 end
+--]=]
 
 -- static inline uint32_t 
 local function hash_2words(x, y)
@@ -145,7 +132,7 @@ local function hash_2words(x, y)
 end
 
 -- static inline uint32_t 
-local function hash_uint64_basis(const uint64_t x, const uint32_t basis)
+local function hash_uint64_basis(x, basis)
     return hash_finish(hash_add64(basis, x), 8);
 end
 
@@ -162,7 +149,7 @@ uint32_t hash_words64__(const uint64_t p[], size_t n_words, uint32_t basis);
 
 --/* Inline the larger hash functions only when 'n_words' is known to be
 -- * compile-time constant. */
-
+--[=[
 --static inline uint32_t
 local function hash_words(const uint32_t p[], size_t n_words, uint32_t basis)
 
@@ -196,4 +183,20 @@ local function hash_boolean(bool x, uint32_t basis)
 
     return P1 ^ hash_rot(basis, 1);
 end
+--]=]
 
+local Lib_hash = ffi.load("openvswitch")
+
+local exports = {
+    Lib_hash = Lib_hash;    
+
+    -- inline functions
+
+    -- library functions
+    hash_bytes = Lib_hash.hash_bytes;
+    hash_bytes128 = Lib_hash.hash_bytes128;
+    hash_3words = Lib_hash.hash_3words;
+    hash_double = Lib_hash.hash_double;
+    hash_words__ = Lib_hash.hash_words__;
+    hash_words64__ = Lib_hash.hash_words64__;
+}
